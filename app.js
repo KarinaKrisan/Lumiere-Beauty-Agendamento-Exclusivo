@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// --- SUAS CONFIGURAÇÕES (Mantidas) ---
+// CONFIG DO FIREBASE (MANTIDA)
 const firebaseConfig = {
   apiKey: "AIzaSyCICXCU3bgxoVK4kAXncxSWZHAazKFS65s",
   authDomain: "agenda-salao-bbddf.firebaseapp.com",
@@ -16,255 +16,213 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const appointmentsRef = collection(db, "agendamentos");
 
-// --- DADOS DOS PROFISSIONAIS (PERFIL COMPLETO) ---
-// Usando UI Avatars para gerar fotos baseadas nas iniciais, mas você pode por URLs reais
+// DADOS (Simulados, em produção viriam do BD)
 const professionalsConfig = [
-    { 
-        id: "ana_corte", 
-        name: "Ana Silva", 
-        specialty: "Hair Stylist", 
-        rating: "4.9", 
-        reviews: 120,
-        img: "https://ui-avatars.com/api/?name=Ana+Silva&background=ffc107&color=fff",
-        portfolio: "#portfolio-ana" // Link fictício
-    },
-    { 
-        id: "carlos_color", 
-        name: "Carlos", 
-        specialty: "Colorimetria", 
-        rating: "5.0", 
-        reviews: 85,
-        img: "https://ui-avatars.com/api/?name=Carlos&background=0d47a1&color=fff",
-        portfolio: "#portfolio-carlos"
-    },
-    { 
-        id: "bia_nails", 
-        name: "Bia", 
-        specialty: "Nail Designer", 
-        rating: "4.8", 
-        reviews: 210,
-        img: "https://ui-avatars.com/api/?name=Bia&background=e91e63&color=fff",
-        portfolio: "#portfolio-bia"
-    },
-    { 
-        id: "julio_barba", 
-        name: "Júlio", 
-        specialty: "Barbeiro", 
-        rating: "4.9", 
-        reviews: 95,
-        img: "https://ui-avatars.com/api/?name=Julio&background=4caf50&color=fff",
-        portfolio: "#portfolio-julio"
-    }
+    { id: "ana_corte", name: "Ana Silva", specialty: "Hair Stylist", img: "https://i.pravatar.cc/150?u=ana", rating: "5.0" },
+    { id: "carlos_color", name: "Carlos", specialty: "Colorista", img: "https://i.pravatar.cc/150?u=carlos", rating: "4.9" },
+    { id: "bia_nails", name: "Bia", specialty: "Nails", img: "https://i.pravatar.cc/150?u=bia", rating: "4.8" },
+    { id: "pedro_barber", name: "Pedro", specialty: "Barber", img: "https://i.pravatar.cc/150?u=pedro", rating: "5.0" }
 ];
 
-// Serviços
 const servicesConfig = [
     { id: "corte_fem", name: "Corte Feminino", duration: 60 },
     { id: "corte_masc", name: "Corte Masculino", duration: 30 },
-    { id: "barba", name: "Barba Completa", duration: 30 },
-    { id: "manicure", name: "Manicure", duration: 45 },
-    { id: "pedicure", name: "Pedicure", duration: 45 },
-    { id: "coloracao", name: "Coloração/Mechas", duration: 120 },
-    { id: "hidratacao", name: "Hidratação Profunda", duration: 45 }
+    { id: "coloracao", name: "Coloração", duration: 120 },
+    { id: "manicure", name: "Manicure", duration: 45 }
 ];
 
-const SHOP_OPEN_HOUR = 9;
-const SHOP_CLOSE_HOUR = 19;
+// STATE MANAGEMENT
+let bookingState = {
+    professional: null,
+    service: null,
+    date: null,
+    time: null
+};
 
-// --- ELEMENTOS DOM ---
-const proGrid = document.getElementById('professionalsGrid');
-const serviceSelect = document.getElementById('service');
-const step2 = document.getElementById('step2');
-const dateInput = document.getElementById('date');
-const slotsSection = document.getElementById('slotsSection');
-const slotsContainer = document.getElementById('slotsContainer');
-const submitBtn = document.getElementById('submitBtn');
+// --- INIT ---
+document.addEventListener("DOMContentLoaded", () => {
+    renderProfessionals();
+    populateServices();
+    
+    // Tornar função global para o HTML acessar
+    window.changeStep = changeStep;
+});
 
-// --- 1. RENDERIZAR PROFISSIONAIS ---
+// 1. RENDER PROFISSIONAIS
 function renderProfessionals() {
-    proGrid.innerHTML = '';
+    const grid = document.getElementById('professionalsGrid');
     professionalsConfig.forEach(pro => {
         const card = document.createElement('div');
         card.className = 'pro-card';
         card.innerHTML = `
-            <img src="${pro.img}" class="pro-img" alt="${pro.name}">
-            <span class="pro-name">${pro.name}</span>
-            <span class="pro-spec">${pro.specialty}</span>
-            <div class="pro-rating">⭐ ${pro.rating} <span style="font-size:0.8em; color:#999">(${pro.reviews})</span></div>
-            <a href="${pro.portfolio}" onclick="event.stopPropagation()" class="portfolio-link">Ver Portfólio</a>
+            <img src="${pro.img}">
+            <div class="pro-info">
+                <h3>${pro.name}</h3>
+                <span>${pro.specialty}</span>
+                <div class="rating">★★★★★ ${pro.rating}</div>
+            </div>
         `;
-
-        card.addEventListener('click', () => selectProfessional(pro.id, card));
-        proGrid.appendChild(card);
+        card.onclick = () => {
+            bookingState.professional = pro;
+            changeStep(2);
+        };
+        grid.appendChild(card);
     });
 }
-
-function selectProfessional(id, cardElement) {
-    // Visual
-    document.querySelectorAll('.pro-card').forEach(c => c.classList.remove('selected'));
-    cardElement.classList.add('selected');
-    
-    // Dados
-    document.getElementById('selectedProfessional').value = id;
-    
-    // Mostra próximo passo
-    step2.classList.remove('hidden-step');
-    step2.scrollIntoView({ behavior: 'smooth' });
-    
-    // Reseta passos seguintes se mudar o profissional
-    slotsSection.classList.add('hidden-step');
-    submitBtn.classList.remove('active');
-    checkAvailability(); // Tenta checar se já tiver data/serviço preenchidos
-}
-
-// Inicializa render
-renderProfessionals();
-populateServices();
 
 function populateServices() {
+    const select = document.getElementById('service');
     servicesConfig.forEach(s => {
-        const option = document.createElement('option');
-        option.value = s.id;
-        option.textContent = s.name;
-        serviceSelect.appendChild(option);
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.textContent = `${s.name} (${s.duration} min)`;
+        select.appendChild(opt);
     });
 }
 
-// Listeners
-serviceSelect.addEventListener('change', () => {
-    updateDuration();
-    checkAvailability();
-});
-dateInput.addEventListener('change', checkAvailability);
-
-function updateDuration() {
-    const serviceId = serviceSelect.value;
-    const service = servicesConfig.find(s => s.id === serviceId);
-    const display = document.getElementById('serviceDurationDisplay');
-    if (service) {
-        display.textContent = `⏱ Duração: ${service.duration} min`;
-        display.style.display = 'block';
+// 2. NAVIGATOR (Lógica de Troca de Tela)
+function changeStep(stepNumber) {
+    // Validação simples antes de avançar
+    if (stepNumber === 3) {
+        const servId = document.getElementById('service').value;
+        const dateVal = document.getElementById('date').value;
+        
+        if (!servId || !dateVal) {
+            alert("Por favor, selecione serviço e data.");
+            return;
+        }
+        
+        bookingState.service = servicesConfig.find(s => s.id === servId);
+        bookingState.date = dateVal;
+        
+        document.getElementById('summaryService').innerText = bookingState.service.name;
+        loadSlots(); // Carrega horários
     }
+
+    if (stepNumber === 4) {
+        if (!bookingState.time) {
+            alert("Escolha um horário.");
+            return;
+        }
+        updateSummaryCard();
+    }
+
+    // UI Updates
+    document.querySelectorAll('.step').forEach(el => el.classList.remove('active'));
+    document.getElementById(`step${stepNumber}`).classList.add('active');
+    
+    // Atualiza Bolinhas do Header
+    const dots = document.querySelectorAll('.step-dot');
+    dots.forEach((d, i) => {
+        d.classList.toggle('active', i < stepNumber);
+    });
 }
 
-// --- 2. LÓGICA DE DISPONIBILIDADE ---
-async function checkAvailability() {
-    const proId = document.getElementById('selectedProfessional').value;
-    const serviceId = serviceSelect.value;
-    const date = dateInput.value;
-
-    if (!proId || !serviceId || !date) return;
-
-    // Mostra área de slots
-    slotsSection.classList.remove('hidden-step');
-    slotsContainer.innerHTML = '<p>Buscando agenda...</p>';
-
-    // Query no Firebase
+// 3. SLOTS LOGIC (Mesma lógica robusta anterior, visual novo)
+async function loadSlots() {
+    const container = document.getElementById('slotsContainer');
+    container.innerHTML = '<div style="grid-column: span 3; text-align:center; color:#fff;">Buscando disponibilidade...</div>';
+    
+    // Firebase Query
     const q = query(
-        appointmentsRef, 
-        where("date", "==", date),
-        where("professional", "==", proId) // Filtra pelo ID do profissional
+        appointmentsRef,
+        where("date", "==", bookingState.date),
+        where("professional", "==", bookingState.professional.id)
     );
-
+    
     const snapshot = await getDocs(q);
-    const existingBookings = [];
-    snapshot.forEach(doc => existingBookings.push(doc.data()));
+    const busyTimes = [];
+    snapshot.forEach(doc => busyTimes.push(doc.data()));
 
-    generateTimeSlots(existingBookings, serviceId);
-}
+    // Generate
+    container.innerHTML = '';
+    const startMin = 9 * 60; 
+    const endMin = 19 * 60;
+    const duration = bookingState.service.duration;
 
-function generateTimeSlots(bookings, serviceId) {
-    slotsContainer.innerHTML = '';
-    const service = servicesConfig.find(s => s.id === serviceId);
-    const duration = service.duration;
+    let hasSlot = false;
 
-    const startMinutes = SHOP_OPEN_HOUR * 60; 
-    const endMinutes = SHOP_CLOSE_HOUR * 60;
-    const step = 30; 
-
-    let hasSlots = false;
-
-    for (let current = startMinutes; current + duration <= endMinutes; current += step) {
-        const slotStart = current;
-        const slotEnd = current + duration;
+    for (let time = startMin; time + duration <= endMin; time += 30) {
         let isFree = true;
-
-        for (let booking of bookings) {
-            const [bHour, bMin] = booking.time.split(':').map(Number);
-            const bookingStart = bHour * 60 + bMin;
-            const bookingEnd = bookingStart + booking.durationMinutes;
-
-            if (slotStart < bookingEnd && slotEnd > bookingStart) {
-                isFree = false;
-                break;
+        
+        // Verifica Colisão
+        for (let busy of busyTimes) {
+            const [h, m] = busy.time.split(':').map(Number);
+            const bStart = h * 60 + m;
+            const bEnd = bStart + busy.durationMinutes;
+            
+            // Lógica de colisão
+            if (time < bEnd && (time + duration) > bStart) {
+                isFree = false; 
+                break; 
             }
         }
 
         if (isFree) {
-            hasSlots = true;
-            createSlotButton(current);
+            hasSlot = true;
+            createTimeChip(time, container);
         }
     }
-
-    if (!hasSlots) slotsContainer.innerHTML = '<p>Agenda cheia para hoje 😔</p>';
-}
-
-function createSlotButton(minutes) {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    const timeString = `${String(hours).padStart(2, '0')}:${String(mins).padStart(2, '0')}`;
-
-    const btn = document.createElement('div');
-    btn.className = 'time-btn';
-    btn.textContent = timeString;
     
-    btn.onclick = () => {
-        document.querySelectorAll('.time-btn').forEach(b => b.classList.remove('selected'));
-        btn.classList.add('selected');
-        document.getElementById('selectedTime').value = timeString;
-        submitBtn.classList.add('active');
-        submitBtn.disabled = false;
-    };
-    slotsContainer.appendChild(btn);
+    if (!hasSlot) container.innerHTML = '<div style="grid-column: span 3; text-align:center;">Sem horários livres :(</div>';
 }
 
-// --- SUBMIT ---
-const bookingForm = document.getElementById('bookingForm');
-bookingForm.addEventListener('submit', async (e) => {
+function createTimeChip(minutes, container) {
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    const timeStr = `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+    
+    const chip = document.createElement('div');
+    chip.className = 'time-chip';
+    chip.innerText = timeStr;
+    chip.onclick = () => {
+        document.querySelectorAll('.time-chip').forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        bookingState.time = timeStr;
+        
+        // Auto avança após 300ms para UX fluida
+        setTimeout(() => changeStep(4), 300);
+    };
+    container.appendChild(chip);
+}
+
+// 4. SUMMARY & SUBMIT
+function updateSummaryCard() {
+    document.getElementById('finalProImg').src = bookingState.professional.img;
+    document.getElementById('finalProName').innerText = bookingState.professional.name;
+    document.getElementById('finalService').innerText = bookingState.service.name;
+    
+    // Formata Data
+    const d = new Date(bookingState.date);
+    d.setMinutes(d.getMinutes() + d.getTimezoneOffset()); // Ajuste fuso
+    document.getElementById('finalDate').innerText = d.toLocaleDateString('pt-BR');
+    document.getElementById('finalTime').innerText = bookingState.time;
+}
+
+document.getElementById('bookingForm').addEventListener('submit', async (e) => {
     e.preventDefault();
-    submitBtn.textContent = "Salvando...";
-
-    const serviceId = document.getElementById('service').value;
-    const serviceObj = servicesConfig.find(s => s.id === serviceId);
-    const proId = document.getElementById('selectedProfessional').value;
-    const proObj = professionalsConfig.find(p => p.id === proId);
-
-    const newBooking = {
-        name: document.getElementById('name').value,
-        phone: document.getElementById('phone').value,
-        professional: proId,
-        professionalName: proObj.name, // Salva o nome para facilitar leitura no banco
-        service: serviceObj.name,
-        date: document.getElementById('date').value,
-        time: document.getElementById('selectedTime').value,
-        durationMinutes: serviceObj.duration,
+    const btn = document.getElementById('submitBtn');
+    btn.innerText = "Confirmando...";
+    
+    const data = {
+        professional: bookingState.professional.id,
+        professionalName: bookingState.professional.name,
+        service: bookingState.service.name,
+        date: bookingState.date,
+        time: bookingState.time,
+        durationMinutes: bookingState.service.duration,
+        clientName: document.getElementById('name').value,
+        clientPhone: document.getElementById('phone').value,
         createdAt: new Date()
     };
 
     try {
-        await addDoc(appointmentsRef, newBooking);
-        showToast("✅ Agendamento Confirmado com " + proObj.name + "!");
-        setTimeout(() => window.location.reload(), 2000); // Recarrega para limpar
-    } catch (error) {
-        console.error(error);
-        alert("Erro ao agendar.");
-        submitBtn.textContent = "Confirmar Agendamento";
+        await addDoc(appointmentsRef, data);
+        document.getElementById('toast').classList.add('show');
+        setTimeout(() => window.location.reload(), 3000);
+    } catch (err) {
+        console.error(err);
+        alert("Erro ao agendar");
+        btn.innerText = "Tentar Novamente";
     }
 });
-
-function showToast(msg) {
-    const t = document.getElementById("toast");
-    t.textContent = msg;
-    t.className = "toast show";
-    setTimeout(() => t.className = t.className.replace("show", ""), 3000);
-}
