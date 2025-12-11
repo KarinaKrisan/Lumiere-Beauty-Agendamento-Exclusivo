@@ -1,7 +1,8 @@
-/* Importação de Fontes */
+/* --- IMPORTAÇÕES --- */
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Lato:wght@300;400;700&display=swap');
 @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
 
+/* --- VARIÁVEIS GLOBAIS --- */
 :root {
     /* Paleta Dark Luxury Rose Gold */
     --bg-dark: #121212;
@@ -32,10 +33,11 @@ body {
 
 h1, h2, h3 { font-family: 'Playfair Display', serif; }
 
-/* Container Principal */
+/* --- COMPONENTES GERAIS (Container, Inputs, Botões) --- */
+
 .container {
     width: 100%;
-    max-width: 500px;
+    max-width: 500px; /* Padrão cliente */
     background: var(--bg-card);
     padding: 40px;
     border-radius: 20px;
@@ -45,14 +47,15 @@ h1, h2, h3 { font-family: 'Playfair Display', serif; }
     overflow: hidden;
 }
 
-/* Detalhe estético no topo */
+/* Ajuste para admin ser mais largo */
+.container.admin-container {
+    max-width: 800px;
+}
+
 .container::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 4px;
+    top: 0; left: 0; width: 100%; height: 4px;
     background: var(--gold-gradient);
 }
 
@@ -60,7 +63,7 @@ header { text-align: center; margin-bottom: 35px; }
 header h1 { color: var(--gold-primary); font-size: 2.5rem; margin-bottom: 5px; letter-spacing: 1px; }
 header p { color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; font-size: 0.75rem; }
 
-/* Estilização dos Inputs */
+/* Formulários */
 .form-group { margin-bottom: 25px; position: relative; }
 label { display: block; margin-bottom: 8px; color: var(--gold-primary); font-size: 0.9rem; letter-spacing: 0.5px; }
 
@@ -83,14 +86,40 @@ input:focus, select:focus {
     background: #2a2a2a;
 }
 
-/* Ajuste do calendário */
-::-webkit-calendar-picker-indicator {
-    filter: invert(1);
-    opacity: 0.6;
+/* Botão Principal (CTA) */
+.cta-btn {
+    width: 100%;
+    padding: 16px;
+    background: var(--gold-gradient);
+    color: #121212;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1rem;
     cursor: pointer;
+    margin-top: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    transition: all 0.3s;
 }
 
-/* Grid de Horários */
+.cta-btn:hover { 
+    transform: translateY(-2px); 
+    box-shadow: 0 8px 20px rgba(183, 110, 121, 0.3); 
+    filter: brightness(1.1);
+}
+.cta-btn:active { transform: translateY(0); }
+.cta-btn:disabled { background: #555; cursor: wait; filter: none; box-shadow: none; }
+
+/* Mensagens */
+#message { margin-top: 20px; text-align: center; font-size: 0.95rem; min-height: 20px; font-weight: 500;}
+.error { color: var(--error); }
+.success { color: var(--success); }
+
+/* --- ÁREA DO CLIENTE (Agendamento) --- */
+
+::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.6; cursor: pointer; }
+
 .slots-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -124,47 +153,103 @@ input:focus, select:focus {
     box-shadow: 0 5px 15px rgba(183, 110, 121, 0.3);
 }
 
-.slot-btn:disabled { 
-    opacity: 0.2; 
-    cursor: not-allowed; 
-    background: #1a1a1a;
-    text-decoration: line-through; 
+.slot-btn:disabled { opacity: 0.2; cursor: not-allowed; background: #1a1a1a; text-decoration: line-through; }
+
+/* --- ÁREA ADMINISTRATIVA (Novo) --- */
+
+/* Login Overlay */
+#login-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: var(--bg-dark); z-index: 1000;
+    display: flex; justify-content: center; align-items: center; flex-direction: column;
 }
 
-/* Botão Principal (CTA) */
-.cta-btn {
-    width: 100%;
-    padding: 16px;
-    background: var(--gold-gradient);
-    color: #121212;
+/* Navegação por Abas */
+.tab-nav {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 30px;
+    border-bottom: 1px solid rgba(183, 110, 121, 0.2);
+    padding-bottom: 15px;
+}
+
+.tab-btn {
+    background: transparent;
     border: none;
-    border-radius: 8px;
-    font-weight: 700;
-    font-size: 1rem;
+    color: var(--text-muted);
+    font-size: 1.1rem;
     cursor: pointer;
-    margin-top: 10px;
-    text-transform: uppercase;
-    letter-spacing: 1.5px;
+    padding: 10px 20px;
+    transition: all 0.3s;
+    font-family: 'Playfair Display', serif;
+}
+
+.tab-btn:hover { color: var(--gold-primary); }
+
+.tab-btn.active {
+    color: var(--gold-primary);
+    border-bottom: 2px solid var(--gold-primary);
+}
+
+/* Animação das Abas */
+.tab-content { display: none; animation: fadeIn 0.5s; }
+.tab-content.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* Controles do Painel */
+.dashboard-controls {
+    display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap;
+}
+.dashboard-controls input { flex: 1; min-width: 200px; }
+.dashboard-controls button { flex: 1; background: #333; color: white; border: 1px solid #444; }
+.dashboard-controls button:hover { background: var(--gold-primary); color: #121212; }
+
+/* Listas e Cards Admin */
+.list-container { display: flex; flex-direction: column; gap: 15px; }
+
+.admin-card {
+    background: #252525;
+    padding: 20px;
+    border-radius: 12px;
+    border-left: 4px solid var(--gold-primary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    transition: transform 0.2s;
+}
+.admin-card:hover { transform: translateX(5px); background: #2a2a2a; }
+
+.card-info h3 { color: var(--text-main); font-size: 1.1rem; margin-bottom: 5px; }
+.card-info p { color: var(--text-muted); font-size: 0.9rem; }
+.card-info .highlight { color: var(--gold-primary); font-weight: bold; }
+
+.btn-delete {
+    background: transparent; border: 1px solid var(--error); color: var(--error);
+    width: 40px; height: 40px; border-radius: 50%;
+    cursor: pointer; display: flex; align-items: center; justify-content: center;
     transition: all 0.3s;
 }
+.btn-delete:hover { background: var(--error); color: white; }
 
-.cta-btn:hover { 
-    transform: translateY(-2px); 
-    box-shadow: 0 8px 20px rgba(183, 110, 121, 0.3); 
-    filter: brightness(1.1);
+/* Formulário de Adicionar Serviço */
+.add-service-box {
+    background: rgba(255, 255, 255, 0.05);
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 25px;
+    border: 1px dashed var(--gold-primary);
 }
+.add-row { display: flex; gap: 10px; align-items: flex-end; }
+.add-row .form-group { margin-bottom: 0; flex: 1; }
+.add-row button { margin-top: 0; }
 
-.cta-btn:active { transform: translateY(0); }
-.cta-btn:disabled { background: #555; cursor: wait; filter: none; box-shadow: none; }
-
-/* Mensagens de Feedback */
-#message { margin-top: 20px; text-align: center; font-size: 0.95rem; min-height: 20px; font-weight: 500;}
-.error { color: var(--error); }
-.success { color: var(--success); }
-
-/* Responsividade */
-@media (max-width: 480px) {
-    .container { padding: 30px 20px; border-radius: 0; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; border: none;}
+/* Responsividade Admin */
+@media (max-width: 600px) {
+    .container { padding: 30px 20px; }
+    .add-row { flex-direction: column; }
+    .add-row button { width: 100%; margin-top: 10px; }
+    .admin-card { flex-direction: column; text-align: center; gap: 15px; }
     .slots-container { grid-template-columns: repeat(3, 1fr); }
-    header h1 { font-size: 2rem; }
 }
