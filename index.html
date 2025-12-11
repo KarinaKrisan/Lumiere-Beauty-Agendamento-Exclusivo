@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SalonMaster - Agendamento Inteligente</title>
+    <title>SalonMaster - Escolha seu Pro</title>
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💇‍♀️</text></svg>">
 </head>
@@ -12,48 +12,43 @@
     <div class="container">
         <header>
             <h1>SalonMaster</h1>
-            <p>Agende seu momento de beleza.</p>
+            <p>Os melhores especialistas para você.</p>
         </header>
 
         <section class="form-section">
             <form id="bookingForm">
-                <div class="input-group">
-                    <label>Seu Nome</label>
-                    <input type="text" id="name" placeholder="Como gosta de ser chamado(a)" required>
-                </div>
                 
-                <div class="input-group">
-                    <label>WhatsApp</label>
-                    <input type="tel" id="phone" placeholder="(11) 99999-9999" required>
+                <div class="step-section">
+                    <h3>1. Escolha o Profissional</h3>
+                    <div id="professionalsGrid" class="professionals-grid">
+                        </div>
+                    <input type="hidden" id="selectedProfessional" required>
                 </div>
 
-                <hr class="divider">
+                <div id="step2" class="step-section hidden-step">
+                    <h3>2. Detalhes do Serviço</h3>
+                    
+                    <div class="input-group">
+                        <label>Serviço Desejado</label>
+                        <select id="service" required>
+                            <option value="" disabled selected>Selecione o serviço...</option>
+                            </select>
+                        <small id="serviceDurationDisplay" style="color: var(--primary-color); display:none; margin-top:5px;"></small>
+                    </div>
 
-                <div class="input-group">
-                    <label>Escolha o Profissional</label>
-                    <select id="professional" required>
-                        <option value="" disabled selected>Selecione o profissional...</option>
-                        <option value="Ana">Ana (Especialista em Cortes)</option>
-                        <option value="Carlos">Carlos (Colorimetria)</option>
-                        <option value="Bia">Bia (Manicure/Pedicure)</option>
-                    </select>
-                </div>
-                
-                <div class="input-group">
-                    <label>Escolha o Serviço</label>
-                    <select id="service" required>
-                        <option value="" disabled selected>Selecione o serviço...</option>
-                        </select>
-                    <small id="serviceDurationDisplay" style="color: var(--primary-color); display:none;"></small>
-                </div>
+                    <div class="input-group">
+                        <label>Data</label>
+                        <input type="date" id="date" required>
+                    </div>
 
-                <div class="input-group">
-                    <label>Data Desejada</label>
-                    <input type="date" id="date" required>
+                    <div class="client-data-group">
+                        <input type="text" id="name" placeholder="Seu Nome" required>
+                        <input type="tel" id="phone" placeholder="Seu WhatsApp" required>
+                    </div>
                 </div>
 
-                <div id="slotsSection" class="slots-section" style="display:none;">
-                    <label>Horários Disponíveis (Toque para selecionar)</label>
+                <div id="slotsSection" class="step-section hidden-step">
+                    <h3>3. Escolha o Horário</h3>
                     <div id="slotsContainer" class="slots-grid">
                         </div>
                     <input type="hidden" id="selectedTime" required>
