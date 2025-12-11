@@ -1,0 +1,84 @@
+:root {
+    --primary-color: #880e4f; /* Vinho elegante */
+    --secondary-color: #ad1457;
+    --bg-color: #f3e5f5;
+    --card-bg: #ffffff;
+    --text-color: #2c3e50;
+}
+
+body {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 20px;
+    display: flex;
+    justify-content: center;
+}
+
+.container {
+    width: 100%;
+    max-width: 500px;
+    background: var(--card-bg);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+}
+
+header { text-align: center; margin-bottom: 30px; }
+h1 { color: var(--primary-color); margin: 0; font-size: 2.2rem; }
+p { color: #666; margin-top: 5px; }
+
+.input-group { margin-bottom: 15px; }
+label { display: block; margin-bottom: 5px; font-weight: bold; font-size: 0.9rem; color: #555; }
+
+input, select {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    box-sizing: border-box;
+    font-size: 1rem;
+    transition: border-color 0.3s;
+}
+
+input:focus, select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+}
+
+.date-time-group { display: flex; gap: 15px; }
+.date-time-group .input-group { flex: 1; }
+
+button {
+    width: 100%;
+    padding: 15px;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    margin-top: 10px;
+}
+
+button:hover { background-color: var(--secondary-color); }
+button:disabled { background-color: #ccc; cursor: not-allowed; }
+
+hr { border: 0; height: 1px; background: #eee; margin: 30px 0; }
+
+.card {
+    border-left: 5px solid var(--primary-color);
+    background: #fafafa;
+    padding: 15px;
+    margin-bottom: 12px;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.card-info strong { display: block; color: var(--primary-color); }
+.card-date { text-align: right; font-size: 0.85rem; color: #666; }
