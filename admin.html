@@ -17,8 +17,15 @@
                 <h1>Lumière</h1>
                 <p>Acesso Restrito</p>
             </header>
-            <input type="password" id="adminPassword" placeholder="Senha do admin" style="margin-bottom: 15px; text-align: center;">
-            <button class="cta-btn" onclick="checkLogin()">Entrar</button>
+            
+            <div class="form-group">
+                <input type="text" id="adminUser" placeholder="Usuário" style="margin-bottom: 10px; text-align: center;">
+            </div>
+            <div class="form-group">
+                <input type="password" id="adminPassword" placeholder="Senha" style="margin-bottom: 15px; text-align: center;">
+            </div>
+            
+            <button class="cta-btn" id="btnLogin" onclick="checkLogin()">Entrar</button>
             <p id="loginError" class="error" style="margin-top: 10px;"></p>
         </div>
     </div>
@@ -28,6 +35,7 @@
             <div style="text-align: left;">
                 <h1>Gestão</h1>
                 <p>Agenda Lumière</p>
+                <small id="adminWelcome" style="color: var(--gold-primary); font-size: 0.8rem;"></small>
             </div>
             <button onclick="logout()" style="background:none; border:none; color: var(--text-muted); cursor: pointer; font-size: 1rem;">
                 <i class="fas fa-sign-out-alt"></i> Sair
@@ -52,8 +60,7 @@
                 <i class="fas fa-circle-notch fa-spin fa-2x"></i>
             </div>
 
-            <div id="appointmentsList" class="list-container">
-                </div>
+            <div id="appointmentsList" class="list-container"></div>
         </div>
 
         <div id="tab-servicos" class="tab-content">
@@ -73,7 +80,6 @@
                     </button>
                 </form>
             </div>
-
             <div id="loading-services" style="text-align: center; display: none; color: var(--gold-primary);">
                 <i class="fas fa-circle-notch fa-spin fa-2x"></i>
             </div>
@@ -97,7 +103,6 @@
                     </button>
                 </form>
             </div>
-
             <div id="loading-team" style="text-align: center; display: none; color: var(--gold-primary);">
                 <i class="fas fa-circle-notch fa-spin fa-2x"></i>
             </div>
@@ -124,27 +129,82 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // --- SISTEMA DE LOGIN E ABAS ---
-        window.checkLogin = () => {
+        // --- SISTEMA DE LOGIN SEGURO ---
+
+        // 1. Verificar se já está logado ao abrir a página
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedUser = localStorage.getItem('lumiere_admin_user');
+            if(savedUser) {
+                showPanel(savedUser);
+            }
+        });
+
+        // 2. Função de Login conectada ao Banco
+        window.checkLogin = async () => {
+            const user = document.getElementById('adminUser').value;
             const pass = document.getElementById('adminPassword').value;
-            if(pass === "admin123") { 
-                document.getElementById('login-overlay').style.display = 'none';
-                document.getElementById('adminPanel').style.display = 'block';
-                loadAppointments(); 
-            } else {
-                document.getElementById('loginError').textContent = "Senha incorreta.";
+            const btn = document.getElementById('btnLogin');
+            const errorMsg = document.getElementById('loginError');
+
+            if(!user || !pass) {
+                errorMsg.textContent = "Preencha todos os campos.";
+                return;
+            }
+
+            // Efeito visual de carregamento
+            btn.disabled = true;
+            btn.textContent = "Verificando...";
+            errorMsg.textContent = "";
+
+            try {
+                // Busca na coleção 'administradores' se existe esse par usuario/senha
+                const q = query(
+                    collection(db, "administradores"),
+                    where("usuario", "==", user),
+                    where("senha", "==", pass)
+                );
+
+                const querySnapshot = await getDocs(q);
+
+                if (!querySnapshot.empty) {
+                    // SUCESSO!
+                    localStorage.setItem('lumiere_admin_user', user); // Salva sessão
+                    showPanel(user);
+                } else {
+                    // FALHA
+                    errorMsg.textContent = "Usuário ou senha incorretos.";
+                }
+
+            } catch (error) {
+                console.error("Erro login:", error);
+                errorMsg.textContent = "Erro de conexão. Verifique o console.";
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Entrar";
             }
         };
 
-        window.logout = () => location.reload();
+        // 3. Exibir o painel e carregar dados
+        function showPanel(userName) {
+            document.getElementById('login-overlay').style.display = 'none';
+            document.getElementById('adminPanel').style.display = 'block';
+            document.getElementById('adminWelcome').textContent = `Olá, ${userName}`;
+            loadAppointments(); // Carrega a aba padrão
+        }
 
+        // 4. Logout
+        window.logout = () => {
+            localStorage.removeItem('lumiere_admin_user');
+            location.reload();
+        };
+
+        // --- NAVEGAÇÃO DE ABAS ---
         window.switchTab = (tabName) => {
             document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
             
             document.getElementById(`tab-${tabName}`).classList.add('active');
             
-            // Lógica simples para ativar o botão correto
             const buttons = document.querySelectorAll('.tab-btn');
             if(tabName === 'agenda') buttons[0].classList.add('active');
             if(tabName === 'servicos') buttons[1].classList.add('active');
@@ -167,16 +227,11 @@
             loader.style.display = 'block';
 
             try {
-                const q = query(
-                    collection(db, "agendamentos"),
-                    where("data", "==", dateVal),
-                    orderBy("hora") 
-                );
-
+                const q = query(collection(db, "agendamentos"), where("data", "==", dateVal), orderBy("hora"));
                 const querySnapshot = await getDocs(q);
 
                 if (querySnapshot.empty) {
-                    listElement.innerHTML = `<div style="text-align:center; padding: 20px; color:#777;">Nenhum agendamento para esta data.</div>`;
+                    listElement.innerHTML = `<div style="text-align:center; padding: 20px; color:#777;">Nenhum agendamento.</div>`;
                 } else {
                     querySnapshot.forEach((docSnap) => {
                         const data = docSnap.data();
@@ -195,12 +250,7 @@
                         listElement.appendChild(card);
                     });
                 }
-            } catch (error) {
-                console.error(error);
-                listElement.innerHTML = `<p class="error">Erro ao carregar (Verifique índice no console).</p>`;
-            } finally {
-                loader.style.display = 'none';
-            }
+            } catch (error) { console.error(error); listElement.innerHTML = `<p class="error">Erro ao carregar agenda.</p>`; } finally { loader.style.display = 'none'; }
         };
 
         // --- 2. SERVIÇOS ---
@@ -213,10 +263,8 @@
             try {
                 const q = query(collection(db, "procedimentos"), orderBy("nome"));
                 const querySnapshot = await getDocs(q);
-
-                if (querySnapshot.empty) {
-                    listElement.innerHTML = `<div style="text-align:center; padding: 20px; color:#777;">Nenhum serviço.</div>`;
-                } else {
+                if (querySnapshot.empty) { listElement.innerHTML = `<div style="text-align:center; padding: 20px; color:#777;">Nenhum serviço.</div>`; } 
+                else {
                     querySnapshot.forEach((docSnap) => {
                         const data = docSnap.data();
                         const card = document.createElement('div');
@@ -242,7 +290,6 @@
             const duracao = parseInt(document.getElementById('newServiceDuration').value);
             const btn = e.target.querySelector('button');
             btn.disabled = true;
-
             try {
                 await addDoc(collection(db, "procedimentos"), { nome, duracao });
                 alert("Salvo!");
@@ -251,7 +298,7 @@
             } catch (error) { alert("Erro ao salvar."); } finally { btn.disabled = false; }
         });
 
-        // --- 3. EQUIPE (NOVO) ---
+        // --- 3. EQUIPE ---
         window.loadTeamList = async () => {
             const listElement = document.getElementById('teamList');
             const loader = document.getElementById('loading-team');
@@ -261,10 +308,8 @@
             try {
                 const q = query(collection(db, "profissionais"), orderBy("nome"));
                 const querySnapshot = await getDocs(q);
-
-                if (querySnapshot.empty) {
-                    listElement.innerHTML = `<div style="text-align:center; padding: 20px; color:#777;">Nenhum profissional.</div>`;
-                } else {
+                if (querySnapshot.empty) { listElement.innerHTML = `<div style="text-align:center; padding: 20px; color:#777;">Nenhum profissional.</div>`; }
+                else {
                     querySnapshot.forEach((docSnap) => {
                         const data = docSnap.data();
                         const card = document.createElement('div');
@@ -290,7 +335,6 @@
             const especialidade = document.getElementById('newTeamRole').value;
             const btn = e.target.querySelector('button');
             btn.disabled = true;
-
             try {
                 await addDoc(collection(db, "profissionais"), { nome, especialidade });
                 alert("Profissional adicionado!");
@@ -299,7 +343,7 @@
             } catch (error) { alert("Erro ao salvar."); } finally { btn.disabled = false; }
         });
 
-        // --- DELETAR ---
+        // --- DELETAR GLOBAL ---
         window.deleteItem = async (collectionName, id, itemName) => {
             if(confirm(`Excluir ${itemName}?`)) {
                 try {
