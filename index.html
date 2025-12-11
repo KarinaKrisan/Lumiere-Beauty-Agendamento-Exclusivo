@@ -21,12 +21,7 @@
             <div class="form-group">
                 <label for="service"><i class="fas fa-sparkles"></i> Escolha o Serviço</label>
                 <select id="service" required>
-                    <option value="" disabled selected>Selecione uma experiência...</option>
-                    <option value="corte" data-duration="60">Corte & Styling (60 min)</option>
-                    <option value="coloracao" data-duration="120">Coloração Premium (120 min)</option>
-                    <option value="mechas" data-duration="180">Mechas Creative (180 min)</option>
-                    <option value="manicure" data-duration="45">Manicure Spa (45 min)</option>
-                    <option value="pedicure" data-duration="60">Pedicure Spa (60 min)</option>
+                    <option value="" disabled selected>Carregando serviços...</option>
                 </select>
             </div>
 
@@ -52,7 +47,7 @@
                 </div>
                 <div class="slots-container" id="slots-grid">
                     <div style="grid-column: span 4; color: #555; text-align: center; font-size: 0.9rem; padding: 20px; border: 1px dashed #333; border-radius: 8px;">
-                        Selecione serviço, profissional e data para ver os horários.
+                        Selecione serviço, profissional e data.
                     </div>
                 </div>
                 <input type="hidden" id="selectedTime">
@@ -73,194 +68,7 @@
         </form>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, addDoc, query, where, getDocs, Timestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    <script type="module" src="app.js"></script>
 
-        // --- SUAS CHAVES DO FIREBASE ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyCICXCU3bgxoVK4kAXncxSWZHAazKFS65s",
-            authDomain: "agenda-salao-bbddf.firebaseapp.com",
-            projectId: "agenda-salao-bbddf",
-            storageBucket: "agenda-salao-bbddf.firebasestorage.app",
-            messagingSenderId: "977961284310",
-            appId: "1:977961284310:web:de2776476262d942e68f77",
-            measurementId: "G-WGP1LCJN9M"
-        };
-
-        // Inicializa Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-
-        // --- LÓGICA DO APP ---
-
-        const elements = {
-            form: document.getElementById('bookingForm'),
-            service: document.getElementById('service'),
-            professional: document.getElementById('professional'),
-            date: document.getElementById('date'),
-            slotsGrid: document.getElementById('slots-grid'),
-            slotsLoader: document.getElementById('slots-loader'),
-            selectedTimeInput: document.getElementById('selectedTime'),
-            msg: document.getElementById('message'),
-            btn: document.getElementById('submitBtn')
-        };
-
-        // Define data mínima como hoje
-        elements.date.min = new Date().toISOString().split("T")[0];
-
-        // Escutadores de evento para atualizar horários automaticamente
-        elements.date.addEventListener('change', loadAvailability);
-        elements.professional.addEventListener('change', loadAvailability);
-        elements.service.addEventListener('change', loadAvailability);
-
-        async function loadAvailability() {
-            const dateVal = elements.date.value;
-            const profVal = elements.professional.value;
-            const serviceOpt = elements.service.options[elements.service.selectedIndex];
-            
-            if (!dateVal || !profVal || !serviceOpt.value) return;
-
-            const duration = parseInt(serviceOpt.getAttribute('data-duration'));
-            
-            elements.slotsGrid.innerHTML = '';
-            elements.slotsLoader.style.display = 'block';
-            elements.selectedTimeInput.value = ''; // Reset
-
-            try {
-                // 1. Busca agendamentos existentes no Firestore
-                const q = query(
-                    collection(db, "agendamentos"),
-                    where("profissional", "==", profVal),
-                    where("data", "==", dateVal)
-                );
-                
-                const querySnapshot = await getDocs(q);
-                const busyTimes = [];
-
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    busyTimes.push({ start: data.hora, duration: data.duracao });
-                });
-
-                // 2. Gera Slots
-                generateSlots(busyTimes, duration);
-
-            } catch (error) {
-                console.error("Erro ao buscar agenda:", error);
-                let errorMsg = "Erro de conexão.";
-                if(error.code === 'permission-denied') {
-                    errorMsg = "Erro de permissão no banco. Verifique as Regras do Firebase.";
-                }
-                elements.msg.innerHTML = `<span class="error">${errorMsg}</span>`;
-            } finally {
-                elements.slotsLoader.style.display = 'none';
-            }
-        }
-
-        function generateSlots(busyTimes, serviceDuration) {
-            const startHour = 9; // Abertura
-            const endHour = 19;  // Fechamento
-            const interval = 30; // Minutos
-
-            let currentTime = new Date();
-            currentTime.setHours(startHour, 0, 0, 0);
-
-            const endTime = new Date();
-            endTime.setHours(endHour, 0, 0, 0);
-
-            let slotsHtml = '';
-            let hasSlots = false;
-
-            while (currentTime < endTime) {
-                const timeString = currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-                
-                const serviceEndTime = new Date(currentTime.getTime() + serviceDuration * 60000);
-                
-                const isBusy = checkCollision(timeString, serviceDuration, busyTimes);
-                const isTooLate = serviceEndTime > endTime;
-
-                if (!isBusy && !isTooLate) {
-                    slotsHtml += `<button type="button" class="slot-btn" onclick="selectSlot(this, '${timeString}')">${timeString}</button>`;
-                    hasSlots = true;
-                }
-                currentTime.setMinutes(currentTime.getMinutes() + interval);
-            }
-
-            if (!hasSlots) {
-                elements.slotsGrid.innerHTML = '<p style="grid-column: span 4; color: var(--text-muted); text-align: center; padding: 10px;">Sem horários para esta data.</p>';
-            } else {
-                elements.slotsGrid.innerHTML = slotsHtml;
-            }
-        }
-
-        function checkCollision(slotTime, newDuration, busyList) {
-            const timeToMin = (t) => {
-                const [h, m] = t.split(':').map(Number);
-                return h * 60 + m;
-            };
-
-            const newStart = timeToMin(slotTime);
-            const newEnd = newStart + newDuration;
-
-            for (let busy of busyList) {
-                const busyStart = timeToMin(busy.start);
-                const busyEnd = busyStart + busy.duration;
-                if (newStart < busyEnd && newEnd > busyStart) {
-                    return true; 
-                }
-            }
-            return false;
-        }
-
-        window.selectSlot = (btn, time) => {
-            document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
-            btn.classList.add('selected');
-            elements.selectedTimeInput.value = time;
-        };
-
-        elements.form.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            
-            const time = elements.selectedTimeInput.value;
-            if (!time) {
-                elements.msg.innerHTML = '<span class="error">Por favor, selecione um horário no calendário.</span>';
-                return;
-            }
-
-            elements.btn.disabled = true;
-            elements.btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Agendando...';
-            elements.msg.innerHTML = '';
-
-            try {
-                const serviceOpt = elements.service.options[elements.service.selectedIndex];
-
-                await addDoc(collection(db, "agendamentos"), {
-                    cliente: document.getElementById('clientName').value,
-                    telefone: document.getElementById('clientPhone').value,
-                    servico: serviceOpt.text,
-                    servicoId: serviceOpt.value,
-                    duracao: parseInt(serviceOpt.getAttribute('data-duration')),
-                    profissional: elements.professional.value,
-                    data: elements.date.value,
-                    hora: time,
-                    status: 'pendente',
-                    criadoEm: Timestamp.now()
-                });
-
-                elements.msg.innerHTML = '<span class="success"><i class="fas fa-check-circle"></i> Agendamento realizado com sucesso!</span>';
-                elements.form.reset();
-                elements.slotsGrid.innerHTML = '<div style="grid-column: span 4; text-align: center; color: #555;">Selecione os dados novamente.</div>';
-                elements.selectedTimeInput.value = '';
-                
-            } catch (error) {
-                console.error(error);
-                elements.msg.innerHTML = '<span class="error">Erro ao agendar. Tente novamente.</span>';
-            } finally {
-                elements.btn.disabled = false;
-                elements.btn.textContent = "Confirmar Agendamento";
-            }
-        });
-    </script>
 </body>
 </html>
