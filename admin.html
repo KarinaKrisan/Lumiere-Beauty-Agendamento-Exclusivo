@@ -10,54 +10,62 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
     <style>
-        /* CSS ESPECÍFICO DO ADMIN */
+        /* --- CSS ESPECÍFICO DO ADMIN --- */
         
-        /* Tela de Login */
+        /* Login Overlay */
         #login-overlay {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--bg-dark);
-            z-index: 1000;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bg-dark); z-index: 1000;
+            display: flex; justify-content: center; align-items: center; flex-direction: column;
+        }
+
+        /* Navegação por Abas */
+        .tab-nav {
             display: flex;
             justify-content: center;
-            align-items: center;
-            flex-direction: column;
-        }
-
-        /* Dashboard */
-        .dashboard-controls {
-            display: flex;
             gap: 15px;
             margin-bottom: 30px;
-            flex-wrap: wrap;
+            border-bottom: 1px solid rgba(183, 110, 121, 0.2);
+            padding-bottom: 15px;
         }
 
-        .dashboard-controls input {
-            flex: 1;
-            min-width: 200px;
+        .tab-btn {
+            background: transparent;
+            border: none;
+            color: var(--text-muted);
+            font-size: 1.1rem;
+            cursor: pointer;
+            padding: 10px 20px;
+            transition: all 0.3s;
+            font-family: 'Playfair Display', serif;
         }
 
-        .dashboard-controls button {
-            flex: 1;
-            margin-top: 0;
-            background: #333;
-            color: white;
-            border: 1px solid #444;
-        }
+        .tab-btn:hover { color: var(--gold-primary); }
         
-        .dashboard-controls button:hover {
-            background: var(--gold-primary);
-            color: #121212;
+        .tab-btn.active {
+            color: var(--gold-primary);
+            border-bottom: 2px solid var(--gold-primary);
         }
 
-        /* Lista de Agendamentos (Cards) */
-        .appointments-list {
-            display: flex;
-            flex-direction: column;
-            gap: 15px;
-        }
+        /* Conteúdo das Abas */
+        .tab-content { display: none; animation: fadeIn 0.5s; }
+        .tab-content.active { display: block; }
 
-        .appt-card {
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+        /* Dashboard Controls (Agenda) */
+        .dashboard-controls {
+            display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap;
+        }
+        .dashboard-controls input { flex: 1; min-width: 200px; }
+        .dashboard-controls button { flex: 1; background: #333; color: white; border: 1px solid #444; }
+        .dashboard-controls button:hover { background: var(--gold-primary); color: #121212; }
+
+        /* Lista de Itens (Comum) */
+        .list-container { display: flex; flex-direction: column; gap: 15px; }
+
+        /* Cards (Agenda e Serviços) */
+        .admin-card {
             background: #252525;
             padding: 20px;
             border-radius: 12px;
@@ -68,54 +76,34 @@
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
             transition: transform 0.2s;
         }
+        .admin-card:hover { transform: translateX(5px); background: #2a2a2a; }
 
-        .appt-card:hover {
-            transform: translateX(5px);
-            background: #2a2a2a;
-        }
-
-        .appt-info h3 {
-            color: var(--text-main);
-            font-size: 1.1rem;
-            margin-bottom: 5px;
-        }
-
-        .appt-info p {
-            color: var(--text-muted);
-            font-size: 0.9rem;
-            margin-bottom: 2px;
-        }
-
-        .appt-info .highlight {
-            color: var(--gold-primary);
-            font-weight: bold;
-        }
+        .card-info h3 { color: var(--text-main); font-size: 1.1rem; margin-bottom: 5px; }
+        .card-info p { color: var(--text-muted); font-size: 0.9rem; }
+        .card-info .highlight { color: var(--gold-primary); font-weight: bold; }
 
         .btn-delete {
-            background: transparent;
-            border: 1px solid var(--error);
-            color: var(--error);
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            background: transparent; border: 1px solid var(--error); color: var(--error);
+            width: 40px; height: 40px; border-radius: 50%;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
             transition: all 0.3s;
         }
+        .btn-delete:hover { background: var(--error); color: white; }
 
-        .btn-delete:hover {
-            background: var(--error);
-            color: white;
-        }
-
-        .empty-state {
-            text-align: center;
-            color: var(--text-muted);
-            padding: 40px;
-            border: 1px dashed #333;
+        /* Formulário Novo Serviço */
+        .add-service-box {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 20px;
             border-radius: 10px;
+            margin-bottom: 25px;
+            border: 1px dashed var(--gold-primary);
+        }
+        .add-row { display: flex; gap: 10px; align-items: flex-end; }
+        .add-row .form-group { margin-bottom: 0; flex: 1; }
+
+        @media (max-width: 600px) {
+            .add-row { flex-direction: column; }
+            .add-row button { width: 100%; margin-top: 10px; }
         }
     </style>
 </head>
@@ -124,14 +112,14 @@
     <div id="login-overlay">
         <div class="container" style="max-width: 400px; text-align: center;">
             <h2 style="color: var(--gold-primary); margin-bottom: 20px;">Acesso Restrito</h2>
-            <input type="password" id="adminPassword" placeholder="Digite a senha do admin" style="margin-bottom: 15px; text-align: center;">
+            <input type="password" id="adminPassword" placeholder="Senha do admin" style="margin-bottom: 15px; text-align: center;">
             <button class="cta-btn" onclick="checkLogin()">Entrar</button>
             <p id="loginError" class="error" style="margin-top: 10px;"></p>
         </div>
     </div>
 
     <div class="container" id="adminPanel" style="display: none; max-width: 800px;">
-        <header style="display: flex; justify-content: space-between; align-items: center;">
+        <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <div style="text-align: left;">
                 <h1>Gestão</h1>
                 <p>Agenda Lumière</p>
@@ -139,27 +127,61 @@
             <button onclick="logout()" style="background:none; border:none; color: var(--text-muted); cursor: pointer;"><i class="fas fa-sign-out-alt"></i> Sair</button>
         </header>
 
-        <div class="dashboard-controls">
-            <input type="date" id="filterDate" onchange="loadAppointments()">
-            
-            <button class="cta-btn" onclick="loadAppointments()" style="max-width: 150px;">
-                <i class="fas fa-sync-alt"></i> Atualizar
-            </button>
-        </div>
+        <nav class="tab-nav">
+            <button class="tab-btn active" onclick="switchTab('agenda')">Agendamentos</button>
+            <button class="tab-btn" onclick="switchTab('servicos')">Gerenciar Serviços</button>
+        </nav>
 
-        <div id="loading" style="text-align: center; display: none; color: var(--gold-primary);">
-            <i class="fas fa-circle-notch fa-spin fa-2x"></i>
-        </div>
-
-        <div id="appointmentsList" class="appointments-list">
+        <div id="tab-agenda" class="tab-content active">
+            <div class="dashboard-controls">
+                <input type="date" id="filterDate" onchange="loadAppointments()">
+                <button class="cta-btn" onclick="loadAppointments()" style="max-width: 150px;">
+                    <i class="fas fa-sync-alt"></i> Atualizar
+                </button>
             </div>
+
+            <div id="loading-agenda" style="text-align: center; display: none; color: var(--gold-primary);">
+                <i class="fas fa-circle-notch fa-spin fa-2x"></i>
+            </div>
+
+            <div id="appointmentsList" class="list-container">
+                </div>
+        </div>
+
+        <div id="tab-servicos" class="tab-content">
+            
+            <div class="add-service-box">
+                <h3 style="color: var(--text-main); margin-bottom: 15px; font-size: 1.2rem;">Adicionar Novo Procedimento</h3>
+                <form id="addServiceForm" class="add-row">
+                    <div class="form-group">
+                        <label>Nome do Procedimento</label>
+                        <input type="text" id="newServiceName" placeholder="Ex: Hidratação Profunda" required>
+                    </div>
+                    <div class="form-group" style="max-width: 150px;">
+                        <label>Duração (min)</label>
+                        <input type="number" id="newServiceDuration" placeholder="60" required min="10">
+                    </div>
+                    <button type="submit" class="cta-btn" style="margin: 0; max-width: 150px;">
+                        <i class="fas fa-plus"></i> Salvar
+                    </button>
+                </form>
+            </div>
+
+            <div id="loading-services" style="text-align: center; display: none; color: var(--gold-primary);">
+                <i class="fas fa-circle-notch fa-spin fa-2x"></i>
+            </div>
+
+            <div id="servicesList" class="list-container">
+                </div>
+        </div>
+
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, collection, query, where, orderBy, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, query, where, orderBy, getDocs, deleteDoc, addDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // --- SUAS CHAVES DO FIREBASE ---
+        // --- CONFIGURAÇÃO ---
         const firebaseConfig = {
             apiKey: "AIzaSyCICXCU3bgxoVK4kAXncxSWZHAazKFS65s",
             authDomain: "agenda-salao-bbddf.firebaseapp.com",
@@ -173,42 +195,52 @@
         const app = initializeApp(firebaseConfig);
         const db = getFirestore(app);
 
-        // --- LÓGICA DE LOGIN (FRONT-END SIMPLIFICADO) ---
-        // ATENÇÃO: Isso não é segurança de banco de dados, é apenas visual.
-        // A senha é: admin123
+        // --- SISTEMA DE LOGIN E ABAS ---
         
         window.checkLogin = () => {
             const pass = document.getElementById('adminPassword').value;
-            if(pass === "admin123") { // TROQUE A SENHA AQUI
+            if(pass === "admin123") { 
                 document.getElementById('login-overlay').style.display = 'none';
                 document.getElementById('adminPanel').style.display = 'block';
-                loadAppointments(); // Carrega dados ao entrar
+                // Carrega a aba padrão
+                loadAppointments(); 
             } else {
                 document.getElementById('loginError').textContent = "Senha incorreta.";
             }
         };
 
-        window.logout = () => {
-            location.reload();
+        window.logout = () => location.reload();
+
+        window.switchTab = (tabName) => {
+            // Esconde todas
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            
+            // Mostra a selecionada
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+            
+            // Atualiza botão
+            const btnIndex = tabName === 'agenda' ? 0 : 1;
+            document.querySelectorAll('.tab-btn')[btnIndex].classList.add('active');
+
+            // Carrega dados específicos se necessário
+            if(tabName === 'servicos') loadServicesList();
         };
 
-        // --- LÓGICA DO DASHBOARD ---
+        // --- FUNCIONALIDADE 1: AGENDA ---
 
-        // Define a data de hoje no input ao abrir
         const filterDateInput = document.getElementById('filterDate');
         filterDateInput.value = new Date().toISOString().split("T")[0];
 
-        // Torna a função global para ser chamada pelo HTML
         window.loadAppointments = async () => {
             const listElement = document.getElementById('appointmentsList');
-            const loader = document.getElementById('loading');
+            const loader = document.getElementById('loading-agenda');
             const dateVal = filterDateInput.value;
 
             listElement.innerHTML = '';
             loader.style.display = 'block';
 
             try {
-                // Query: Busca agendamentos da data selecionada, ordenados por hora
                 const q = query(
                     collection(db, "agendamentos"),
                     where("data", "==", dateVal),
@@ -218,61 +250,119 @@
                 const querySnapshot = await getDocs(q);
 
                 if (querySnapshot.empty) {
-                    listElement.innerHTML = `
-                        <div class="empty-state">
-                            <i class="far fa-calendar-times fa-2x" style="margin-bottom: 10px;"></i>
-                            <p>Nenhum agendamento para esta data.</p>
-                        </div>`;
+                    listElement.innerHTML = `<div style="text-align:center; padding: 20px; color:#777;">Nenhum agendamento para esta data.</div>`;
                 } else {
                     querySnapshot.forEach((docSnap) => {
                         const data = docSnap.data();
-                        const id = docSnap.id;
-                        
-                        // Cria o Card HTML
                         const card = document.createElement('div');
-                        card.className = 'appt-card';
+                        card.className = 'admin-card';
                         card.innerHTML = `
-                            <div class="appt-info">
+                            <div class="card-info">
                                 <h3><i class="far fa-clock"></i> ${data.hora} - ${data.cliente}</h3>
                                 <p><span class="highlight">${data.servico}</span> com ${capitalize(data.profissional)}</p>
                                 <p><i class="fab fa-whatsapp"></i> ${data.telefone}</p>
                             </div>
-                            <button class="btn-delete" onclick="deleteAppointment('${id}', '${data.cliente}')" title="Cancelar Agendamento">
+                            <button class="btn-delete" onclick="deleteItem('agendamentos', '${docSnap.id}', 'o agendamento de ${data.cliente}')">
                                 <i class="fas fa-trash-alt"></i>
                             </button>
                         `;
                         listElement.appendChild(card);
                     });
                 }
-
             } catch (error) {
                 console.error(error);
-                // Se der erro de índice no Firebase (comum ao usar orderBy a primeira vez)
-                if(error.message.includes("The query requires an index")) {
-                    listElement.innerHTML = `<p class="error">Falta criar o índice no Firebase. Abra o console do navegador para ver o link.</p>`;
-                } else {
-                    listElement.innerHTML = `<p class="error">Erro ao carregar dados.</p>`;
-                }
+                listElement.innerHTML = `<p class="error">Erro ao carregar (Verifique índice no console).</p>`;
             } finally {
                 loader.style.display = 'none';
             }
         };
 
-        // Função para apagar agendamento
-        window.deleteAppointment = async (id, clientName) => {
-            if(confirm(`Tem certeza que deseja CANCELAR o agendamento de ${clientName}?`)) {
+        // --- FUNCIONALIDADE 2: GERENCIAR SERVIÇOS ---
+
+        // Carregar Lista
+        window.loadServicesList = async () => {
+            const listElement = document.getElementById('servicesList');
+            const loader = document.getElementById('loading-services');
+            
+            listElement.innerHTML = '';
+            loader.style.display = 'block';
+
+            try {
+                const q = query(collection(db, "procedimentos"), orderBy("nome"));
+                const querySnapshot = await getDocs(q);
+
+                if (querySnapshot.empty) {
+                    listElement.innerHTML = `<div style="text-align:center; padding: 20px; color:#777;">Nenhum serviço cadastrado. Adicione acima.</div>`;
+                } else {
+                    querySnapshot.forEach((docSnap) => {
+                        const data = docSnap.data();
+                        const card = document.createElement('div');
+                        card.className = 'admin-card';
+                        card.innerHTML = `
+                            <div class="card-info">
+                                <h3>${data.nome}</h3>
+                                <p><i class="far fa-hourglass"></i> Duração: <span class="highlight">${data.duracao} min</span></p>
+                            </div>
+                            <button class="btn-delete" onclick="deleteItem('procedimentos', '${docSnap.id}', 'o serviço ${data.nome}')">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        `;
+                        listElement.appendChild(card);
+                    });
+                }
+            } catch (error) {
+                console.error("Erro serviços:", error);
+            } finally {
+                loader.style.display = 'none';
+            }
+        };
+
+        // Adicionar Serviço
+        document.getElementById('addServiceForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const nome = document.getElementById('newServiceName').value;
+            const duracao = parseInt(document.getElementById('newServiceDuration').value);
+            const btn = e.target.querySelector('button');
+
+            if(!nome || !duracao) return;
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+
+            try {
+                await addDoc(collection(db, "procedimentos"), {
+                    nome: nome,
+                    duracao: duracao
+                });
+                alert("Serviço adicionado com sucesso!");
+                document.getElementById('addServiceForm').reset();
+                loadServicesList(); // Atualiza a lista
+            } catch (error) {
+                console.error(error);
+                alert("Erro ao salvar serviço.");
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-plus"></i> Salvar';
+            }
+        });
+
+        // --- FUNÇÃO DELETAR GENÉRICA ---
+        window.deleteItem = async (collectionName, id, itemName) => {
+            if(confirm(`Tem certeza que deseja excluir ${itemName}?`)) {
                 try {
-                    await deleteDoc(doc(db, "agendamentos", id));
-                    alert("Agendamento cancelado!");
-                    loadAppointments(); // Recarrega a lista
+                    await deleteDoc(doc(db, collectionName, id));
+                    
+                    // Recarrega a lista correta dependendo do que foi deletado
+                    if(collectionName === 'agendamentos') loadAppointments();
+                    if(collectionName === 'procedimentos') loadServicesList();
+                    
                 } catch (error) {
                     console.error("Erro ao excluir:", error);
                     alert("Erro ao excluir.");
                 }
             }
-        }
+        };
 
-        // Helper para maiúscula
         function capitalize(s) {
             return s ? s.charAt(0).toUpperCase() + s.slice(1) : '';
         }
