@@ -1,7 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getFirestore, collection, addDoc, query, where, getDocs, Timestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-// --- SUAS CHAVES ---
+// --- CONFIGURAÇÃO FIREBASE ---
 const firebaseConfig = {
     apiKey: "AIzaSyCICXCU3bgxoVK4kAXncxSWZHAazKFS65s",
     authDomain: "agenda-salao-bbddf.firebaseapp.com",
@@ -15,10 +15,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// Estado
+// Variável para armazenar o serviço escolhido na Tela 1
 let currentService = null;
 
-// Elementos
+// Elementos do DOM
 const views = {
     services: document.getElementById('services-view'),
     booking: document.getElementById('booking-view'),
@@ -43,7 +43,7 @@ const bookingEl = {
     phone: document.getElementById('clientPhone')
 };
 
-// --- INICIALIZAÇÃO ---
+// --- PASSO 1: CARREGAR LISTA DE SERVIÇOS ---
 async function init() {
     views.loader.style.display = 'block';
     try {
@@ -52,7 +52,7 @@ async function init() {
 
         views.list.innerHTML = '';
         if (querySnapshot.empty) {
-            views.list.innerHTML = '<p style="text-align:center;color:#777">Sem serviços.</p>';
+            views.list.innerHTML = '<p style="text-align:center;color:#777">Nenhum procedimento encontrado.</p>';
             return;
         }
 
@@ -65,7 +65,7 @@ async function init() {
                     <h4>${data.nome}</h4>
                     <div class="service-meta">
                         <span><i class="far fa-clock"></i> ${formatTime(data.duracao)}</span>
-                        ${data.preco ? `<span><i class="fas fa-dollar-sign"></i> a partir de R$ ${data.preco},00</span>` : ''}
+                        ${data.preco ? `<span><i class="fas fa-dollar-sign"></i> R$ ${data.preco},00</span>` : ''}
                     </div>
                 </div>
                 <button class="btn-reservar" onclick="selectService('${doc.id}', '${data.nome}', ${data.duracao})">
@@ -82,52 +82,63 @@ function formatTime(min) {
     const h = Math.floor(min / 60);
     const m = min % 60;
     if (h > 0 && m > 0) return `${h}h:${m < 10 ? '0'+m : m}min`;
-    if (h > 0) return `${h}h:00min`;
+    if (h > 0) return `${h}h`;
     return `${m}min`;
 }
 
-// --- FLUXO DE RESERVA ---
+// --- PASSO 2: TRANSIÇÃO PARA TELA DE AGENDAMENTO ---
 window.selectService = (id, nome, duracao) => {
+    // 1. Salva o serviço selecionado
     currentService = { id, nome, duracao };
+    
+    // 2. Atualiza o cabeçalho da Tela 2
     bookingEl.serviceName.textContent = nome;
     
+    // 3. Troca as telas
     views.services.classList.remove('active');
     views.booking.classList.add('active');
     
+    // 4. Carrega os dados necessários para a Tela 2
     loadProfessionals();
     renderCalendar();
     
-    bookingEl.slotsGrid.innerHTML = '<p style="color:#777; font-size:0.9rem">Selecione data e profissional.</p>';
+    // 5. Reseta campos visuais
+    bookingEl.slotsGrid.innerHTML = '<p class="instruction-text">Escolha um profissional e uma data.</p>';
     bookingEl.timeLabel.style.display = 'block';
+    bookingEl.timeInput.value = '';
+    bookingEl.dateInput.value = '';
 };
 
+// Carrega profissionais do Firebase
 async function loadProfessionals() {
     bookingEl.profSelect.innerHTML = '<option>Carregando...</option>';
     try {
         const q = query(collection(db, "profissionais"), orderBy("nome"));
         const snap = await getDocs(q);
-        bookingEl.profSelect.innerHTML = '<option value="" disabled selected>Selecione...</option>';
+        bookingEl.profSelect.innerHTML = '<option value="" disabled selected>Selecione um profissional...</option>';
         snap.forEach(doc => {
             const d = doc.data();
             const opt = document.createElement('option');
             opt.value = doc.id;
-            opt.text = d.nome;
+            opt.text = d.nome; 
             opt.setAttribute('data-name', d.nome);
             bookingEl.profSelect.appendChild(opt);
         });
     } catch (e) { console.error(e); }
 }
 
+// Gera o calendário horizontal
 function renderCalendar() {
     const strip = bookingEl.calendarStrip;
     strip.innerHTML = '';
     
     const today = new Date();
-    const days = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
+    const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
     
     bookingEl.monthLabel.textContent = `${months[today.getMonth()]} ${today.getFullYear()}`;
 
+    // Gera 14 dias a partir de hoje
     for(let i=0; i<14; i++) {
         const d = new Date();
         d.setDate(today.getDate() + i);
@@ -135,7 +146,8 @@ function renderCalendar() {
         
         const btn = document.createElement('div');
         btn.className = 'date-card';
-        if(d.getDay() === 0) btn.style.opacity = '0.5';
+        // Desabilita visualmente Domingo (opcional)
+        if(d.getDay() === 0) btn.style.opacity = '0.4'; 
 
         btn.innerHTML = `
             <span class="day">${days[d.getDay()]}</span>
@@ -143,7 +155,9 @@ function renderCalendar() {
         `;
         
         btn.onclick = () => {
+            // Remove seleção anterior
             document.querySelectorAll('.date-card').forEach(c => c.classList.remove('selected'));
+            // Adiciona seleção nova
             btn.classList.add('selected');
             bookingEl.dateInput.value = val;
             checkAvailability();
@@ -152,6 +166,7 @@ function renderCalendar() {
     }
 }
 
+// Checa horários disponíveis
 async function checkAvailability() {
     const profId = bookingEl.profSelect.value;
     const dateVal = bookingEl.dateInput.value;
@@ -160,9 +175,9 @@ async function checkAvailability() {
     
     bookingEl.slotsGrid.innerHTML = '';
     bookingEl.slotsLoader.style.display = 'block';
-    bookingEl.timeLabel.style.display = 'block';
-
+    
     try {
+        // Busca agendamentos ocupados
         const q = query(collection(db, "agendamentos"), 
             where("profissionalId", "==", profId), 
             where("data", "==", dateVal));
@@ -174,16 +189,17 @@ async function checkAvailability() {
         generateSlots(busy, currentService.duracao);
     } catch(e) {
         console.error(e);
-        bookingEl.slotsGrid.innerHTML = '<p style="color:var(--error)">Erro ao buscar agenda.</p>';
+        bookingEl.slotsGrid.innerHTML = '<p style="color:var(--error); width:100%; text-align:center;">Erro ao buscar agenda.</p>';
     } finally {
         bookingEl.slotsLoader.style.display = 'none';
     }
 }
 
+// Gera os botões de horário
 function generateSlots(busy, duration) {
     const startHour = 9;
     const endHour = 19;
-    const interval = 30;
+    const interval = 30; 
     
     let now = new Date();
     now.setHours(startHour, 0, 0, 0);
@@ -208,10 +224,11 @@ function generateSlots(busy, duration) {
     }
 
     if(count === 0) {
-        bookingEl.slotsGrid.innerHTML = `<div class="no-slots-message">Nenhum horário disponível</div>`;
+        bookingEl.slotsGrid.innerHTML = `<div class="no-slots-message">Nenhum horário disponível para esta data.</div>`;
         bookingEl.timeLabel.style.display = 'none';
     } else {
         bookingEl.slotsGrid.innerHTML = html;
+        bookingEl.timeLabel.style.display = 'block';
     }
 }
 
@@ -234,15 +251,16 @@ window.selectTime = (el, time) => {
     bookingEl.timeInput.value = time;
 };
 
+// --- PASSO 3: ENVIAR AGENDAMENTO ---
 bookingEl.form.addEventListener('submit', async (e) => {
     e.preventDefault();
     if(!bookingEl.timeInput.value) {
-        alert("Selecione um horário");
+        alert("Por favor, selecione um horário.");
         return;
     }
     
     bookingEl.btn.disabled = true;
-    bookingEl.btn.textContent = "Confirmando...";
+    bookingEl.btn.textContent = "Processando...";
     
     try {
         const profOpt = bookingEl.profSelect.options[bookingEl.profSelect.selectedIndex];
@@ -258,16 +276,17 @@ bookingEl.form.addEventListener('submit', async (e) => {
             criadoEm: Timestamp.now()
         });
         
-        alert("Agendamento realizado!");
-        location.reload();
+        bookingEl.msg.innerHTML = '<span class="success">Agendamento realizado com sucesso!</span>';
+        setTimeout(() => location.reload(), 2000);
     } catch(err) {
         console.error(err);
-        alert("Erro ao agendar");
+        bookingEl.msg.innerHTML = '<span class="error">Erro ao agendar. Tente novamente.</span>';
         bookingEl.btn.disabled = false;
         bookingEl.btn.textContent = "Confirmar Agendamento";
     }
 });
 
+// Atualiza horários se mudar o profissional
 bookingEl.profSelect.addEventListener('change', checkAvailability);
 
 init();
