@@ -1,279 +1,287 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getFirestore, collection, addDoc, query, where, getDocs, Timestamp, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-// --- SUAS CHAVES ---
-const firebaseConfig = {
-    apiKey: "AIzaSyCICXCU3bgxoVK4kAXncxSWZHAazKFS65s",
-    authDomain: "agenda-salao-bbddf.firebaseapp.com",
-    projectId: "agenda-salao-bbddf",
-    storageBucket: "agenda-salao-bbddf.firebasestorage.app",
-    messagingSenderId: "977961284310",
-    appId: "1:977961284310:web:de2776476262d942e68f77",
-    measurementId: "G-WGP1LCJN9M"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-// Estado
-let currentService = null;
-
-// Elementos
-const views = {
-    services: document.getElementById('services-view'),
-    booking: document.getElementById('booking-view'),
-    list: document.getElementById('services-list'),
-    loader: document.getElementById('loading-services')
-};
-
-const bookingEl = {
-    serviceName: document.getElementById('selectedServiceName'),
-    profSelect: document.getElementById('professional'),
-    calendarStrip: document.getElementById('calendarStrip'),
-    monthLabel: document.getElementById('monthLabel'),
-    slotsGrid: document.getElementById('slots-grid'),
-    slotsLoader: document.getElementById('slots-loader'),
-    timeLabel: document.getElementById('timeLabel'),
-    dateInput: document.getElementById('selectedDate'),
-    timeInput: document.getElementById('selectedTime'),
-    form: document.getElementById('bookingForm'),
-    btn: document.getElementById('submitBtn'),
-    msg: document.getElementById('message'),
-    name: document.getElementById('clientName'),
-    phone: document.getElementById('clientPhone')
-};
-
-// --- INICIALIZAÇÃO ---
-async function init() {
-    views.loader.style.display = 'block';
-    try {
-        const q = query(collection(db, "procedimentos"), orderBy("nome"));
-        const querySnapshot = await getDocs(q);
-
-        views.list.innerHTML = '';
-        if (querySnapshot.empty) {
-            views.list.innerHTML = '<p style="text-align:center;color:#777">Sem serviços.</p>';
-            return;
-        }
-
-        querySnapshot.forEach((doc) => {
-            const data = doc.data();
-            const div = document.createElement('div');
-            div.className = 'service-card';
-            div.innerHTML = `
-                <div class="service-info">
-                    <h4>${data.nome}</h4>
-                    <div class="service-meta">
-                        <span><i class="far fa-clock"></i> ${formatTime(data.duracao)}</span>
-                        ${data.preco ? `<span><i class="fas fa-dollar-sign"></i> a partir de R$ ${data.preco},00</span>` : ''}
-                    </div>
-                </div>
-                <button class="btn-reservar" onclick="selectService('${doc.id}', '${data.nome}', ${data.duracao})">
-                    <i class="far fa-calendar-plus"></i> Agendar
-                </button>
-            `;
-            views.list.appendChild(div);
-        });
-    } catch (err) { console.error(err); } 
-    finally { views.loader.style.display = 'none'; }
-}
-
-function formatTime(min) {
-    const h = Math.floor(min / 60);
-    const m = min % 60;
-    if (h > 0 && m > 0) return `${h}h:${m < 10 ? '0'+m : m}min`;
-    if (h > 0) return `${h}h:00min`;
-    return `${m}min`;
-}
-
-// --- FLUXO DE RESERVA ---
-window.selectService = (id, nome, duracao) => {
-    currentService = { id, nome, duracao };
-    bookingEl.serviceName.textContent = nome;
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Administrativo | Lumière</title>
     
-    // Troca tela
-    views.services.classList.remove('active');
-    views.booking.classList.add('active');
+    <link rel="stylesheet" href="style.css">
     
-    loadProfessionals();
-    renderCalendar();
-    
-    // Reset visual
-    bookingEl.slotsGrid.innerHTML = '<p style="color:#777; font-size:0.9rem">Selecione data e profissional.</p>';
-    bookingEl.timeLabel.style.display = 'block';
-};
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
 
-async function loadProfessionals() {
-    bookingEl.profSelect.innerHTML = '<option>Carregando...</option>';
-    try {
-        const q = query(collection(db, "profissionais"), orderBy("nome"));
-        const snap = await getDocs(q);
-        bookingEl.profSelect.innerHTML = '<option value="" disabled selected>Selecione...</option>';
-        snap.forEach(doc => {
-            const d = doc.data();
-            const opt = document.createElement('option');
-            opt.value = doc.id;
-            opt.text = d.nome; // Apenas o nome fica mais limpo no select centralizado
-            opt.setAttribute('data-name', d.nome);
-            bookingEl.profSelect.appendChild(opt);
-        });
-    } catch (e) { console.error(e); }
-}
-
-function renderCalendar() {
-    const strip = bookingEl.calendarStrip;
-    strip.innerHTML = '';
-    
-    const today = new Date();
-    const days = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
-    const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-    
-    bookingEl.monthLabel.textContent = `${months[today.getMonth()]} ${today.getFullYear()}`;
-
-    for(let i=0; i<14; i++) {
-        const d = new Date();
-        d.setDate(today.getDate() + i);
-        const val = d.toISOString().split('T')[0];
-        
-        const btn = document.createElement('div');
-        btn.className = 'date-card';
-        if(d.getDay() === 0) btn.style.opacity = '0.5'; // Domingo visualmente desabilitado
-
-        btn.innerHTML = `
-            <span class="day">${days[d.getDay()]}</span>
-            <span class="date">${d.getDate()}</span>
-        `;
-        
-        btn.onclick = () => {
-            document.querySelectorAll('.date-card').forEach(c => c.classList.remove('selected'));
-            btn.classList.add('selected');
-            bookingEl.dateInput.value = val;
-            checkAvailability();
-        };
-        strip.appendChild(btn);
-    }
-}
-
-async function checkAvailability() {
-    const profId = bookingEl.profSelect.value;
-    const dateVal = bookingEl.dateInput.value;
-    
-    if(!profId || !dateVal) return;
-    
-    bookingEl.slotsGrid.innerHTML = '';
-    bookingEl.slotsLoader.style.display = 'block';
-    bookingEl.timeLabel.style.display = 'block'; // Mostra label por padrão
-
-    try {
-        const q = query(collection(db, "agendamentos"), 
-            where("profissionalId", "==", profId), 
-            where("data", "==", dateVal));
+    <div id="login-overlay">
+        <div class="container login-container">
+            <h2 class="login-title">Área Restrita</h2>
+            <p class="login-subtitle">Acesso Administrativo</p>
             
-        const snap = await getDocs(q);
-        const busy = [];
-        snap.forEach(doc => busy.push({ start: doc.data().hora, duration: doc.data().duracao }));
+            <div class="form-group">
+                <input type="email" id="adminEmail" placeholder="E-mail">
+            </div>
+            <div class="form-group">
+                <input type="password" id="adminPass" placeholder="Senha">
+            </div>
+            
+            <button class="cta-btn" id="btnLogin" onclick="login()">Entrar</button>
+            <p id="loginMsg" class="error-msg"></p>
+        </div>
+    </div>
+
+    <div class="container admin-container" id="adminPanel">
+        <header class="admin-header">
+            <div>
+                <h1>Gestão</h1>
+                <p id="welcomeMsg" class="welcome-text">Carregando...</p>
+            </div>
+            <button onclick="logout()" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i> Sair
+            </button>
+        </header>
+
+        <div class="tab-nav">
+            <button class="tab-btn active" onclick="openTab('agenda')">Agenda</button>
+            <button class="tab-btn" onclick="openTab('servicos')">Serviços</button>
+            <button class="tab-btn" onclick="openTab('equipe')">Equipe</button>
+        </div>
+
+        <div id="tab-agenda" class="tab-content active">
+            <div class="admin-controls">
+                <input type="date" id="filterDate" onchange="loadAppointments()">
+                <button class="cta-btn btn-small" onclick="loadAppointments()">Atualizar</button>
+            </div>
+            <div id="agendaList" class="list-container">Carregando...</div>
+        </div>
+
+        <div id="tab-servicos" class="tab-content">
+            <div class="add-box">
+                <h4 class="box-title">Adicionar Serviço</h4>
+                <div class="add-row">
+                    <input type="text" id="newServName" placeholder="Nome">
+                    <input type="number" id="newServDur" placeholder="Min" class="input-small">
+                    <input type="number" id="newServPrice" placeholder="R$" class="input-small">
+                    <button class="cta-btn btn-small" onclick="addService()">+</button>
+                </div>
+            </div>
+            <div id="servicosList" class="list-container"></div>
+        </div>
+
+        <div id="tab-equipe" class="tab-content">
+            <div class="add-box">
+                <h4 class="box-title">Adicionar Profissional</h4>
+                <div class="add-row">
+                    <input type="text" id="newProfName" placeholder="Nome">
+                    <input type="text" id="newProfRole" placeholder="Especialidade">
+                    <button class="cta-btn btn-small" onclick="addProf()">+</button>
+                </div>
+            </div>
+            <div id="equipeList" class="list-container"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, collection, query, where, getDocs, deleteDoc, doc, getDoc, addDoc, orderBy } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        // CONFIGURAÇÃO DO SEU PROJETO
+        const firebaseConfig = {
+            apiKey: "AIzaSyCICXCU3bgxoVK4kAXncxSWZHAazKFS65s",
+            authDomain: "agenda-salao-bbddf.firebaseapp.com",
+            projectId: "agenda-salao-bbddf",
+            storageBucket: "agenda-salao-bbddf.firebasestorage.app",
+            messagingSenderId: "977961284310",
+            appId: "1:977961284310:web:de2776476262d942e68f77",
+            measurementId: "G-WGP1LCJN9M"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // --- SISTEMA DE LOGIN ---
         
-        generateSlots(busy, currentService.duracao);
-    } catch(e) {
-        console.error(e);
-        bookingEl.slotsGrid.innerHTML = '<p style="color:var(--error)">Erro ao buscar agenda.</p>';
-    } finally {
-        bookingEl.slotsLoader.style.display = 'none';
-    }
-}
-
-function generateSlots(busy, duration) {
-    const startHour = 9;
-    const endHour = 19;
-    const interval = 30; // Minutos
-    
-    let now = new Date();
-    now.setHours(startHour, 0, 0, 0);
-    const end = new Date();
-    end.setHours(endHour, 0, 0, 0);
-    
-    let html = '';
-    let count = 0;
-
-    while(now < end) {
-        const timeStr = now.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
-        
-        const slotEnd = new Date(now.getTime() + duration*60000);
-        const isBusy = checkCollision(timeStr, duration, busy);
-        const isLate = slotEnd > end;
-        
-        if(!isBusy && !isLate) {
-            html += `<div class="slot-btn" onclick="selectTime(this, '${timeStr}')">${timeStr}</div>`;
-            count++;
-        }
-        now.setMinutes(now.getMinutes() + interval);
-    }
-
-    if(count === 0) {
-        // AQUI ESTÁ A LÓGICA DA MENSAGEM
-        bookingEl.slotsGrid.innerHTML = `<div class="no-slots-message">Nenhum horário disponível</div>`;
-        bookingEl.timeLabel.style.display = 'none'; // Esconde "Selecione o horário"
-    } else {
-        bookingEl.slotsGrid.innerHTML = html;
-    }
-}
-
-function checkCollision(time, dur, busyList) {
-    const toMin = t => { const [h, m] = t.split(':').map(Number); return h*60 + m; };
-    const start = toMin(time);
-    const end = start + dur;
-    
-    for(let b of busyList) {
-        const bStart = toMin(b.start);
-        const bEnd = bStart + b.duration;
-        // Colisão: Novo começa dentro do ocupado OU novo termina dentro do ocupado
-        if( (start >= bStart && start < bEnd) || (end > bStart && end <= bEnd) || (start <= bStart && end >= bEnd) ) return true;
-    }
-    return false;
-}
-
-window.selectTime = (el, time) => {
-    document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
-    el.classList.add('selected');
-    bookingEl.timeInput.value = time;
-};
-
-// SUBMIT
-bookingEl.form.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    if(!bookingEl.timeInput.value) {
-        alert("Selecione um horário");
-        return;
-    }
-    
-    bookingEl.btn.disabled = true;
-    bookingEl.btn.textContent = "Confirmando...";
-    
-    try {
-        const profOpt = bookingEl.profSelect.options[bookingEl.profSelect.selectedIndex];
-        await addDoc(collection(db, "agendamentos"), {
-            cliente: bookingEl.name.value,
-            telefone: bookingEl.phone.value,
-            servico: currentService.nome,
-            duracao: currentService.duracao,
-            profissional: profOpt.getAttribute('data-name'),
-            profissionalId: profOpt.value,
-            data: bookingEl.dateInput.value,
-            hora: bookingEl.timeInput.value,
-            criadoEm: Timestamp.now()
+        // Monitora o estado da autenticação
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                // Se o usuário logou no Auth, verifica se é Admin no Firestore
+                checkAdminRole(user);
+            } else {
+                // Se não está logado, mostra tela de login
+                document.getElementById('login-overlay').style.display = 'flex';
+                document.getElementById('adminPanel').style.display = 'none';
+            }
         });
-        
-        alert("Agendamento realizado!");
-        location.reload();
-    } catch(err) {
-        console.error(err);
-        alert("Erro ao agendar");
-        bookingEl.btn.disabled = false;
-        bookingEl.btn.textContent = "Confirmar Agendamento";
-    }
-});
 
-// Listener Profissional
-bookingEl.profSelect.addEventListener('change', checkAvailability);
+        // Função do botão Entrar
+        window.login = async () => {
+            const email = document.getElementById('adminEmail').value;
+            const pass = document.getElementById('adminPass').value;
+            const msg = document.getElementById('loginMsg');
+            const btn = document.getElementById('btnLogin');
 
-init();
+            if(!email || !pass) {
+                msg.textContent = "Preencha todos os campos.";
+                return;
+            }
+
+            btn.textContent = "Verificando...";
+            btn.disabled = true;
+
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+            } catch(error) {
+                console.error("Erro Auth:", error);
+                let text = "Erro ao entrar.";
+                if(error.code === 'auth/invalid-credential' || error.code === 'auth/wrong-password') text = "E-mail ou senha incorretos.";
+                msg.textContent = text;
+                btn.disabled = false;
+                btn.textContent = "Entrar";
+            }
+        }
+
+        // Verifica permissão no Firestore
+        async function checkAdminRole(user) {
+            try {
+                // Busca o documento na coleção 'administradores' usando o UID do Auth
+                const docRef = doc(db, "administradores", user.uid);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    if(data.role === 'admin') {
+                        showPanel(data.name);
+                    } else {
+                        throw new Error("Usuário sem permissão de admin.");
+                    }
+                } else {
+                    throw new Error("Cadastro administrativo não encontrado.");
+                }
+            } catch (e) {
+                console.error(e);
+                document.getElementById('loginMsg').textContent = e.message;
+                signOut(auth);
+                document.getElementById('btnLogin').disabled = false;
+                document.getElementById('btnLogin').textContent = "Entrar";
+            }
+        }
+
+        window.logout = () => {
+            signOut(auth).then(() => location.reload());
+        }
+
+        function showPanel(name) {
+            document.getElementById('login-overlay').style.display = 'none';
+            document.getElementById('adminPanel').style.display = 'block';
+            document.getElementById('welcomeMsg').textContent = `Olá, ${name}`;
+            
+            document.getElementById('filterDate').value = new Date().toISOString().split('T')[0];
+            loadAppointments();
+        }
+
+        // --- NAVEGAÇÃO DE ABAS ---
+        window.openTab = (tabName) => {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            
+            document.getElementById('tab-'+tabName).classList.add('active');
+            event.target.classList.add('active');
+
+            if(tabName === 'servicos') loadServices();
+            if(tabName === 'equipe') loadTeam();
+        }
+
+        // --- 1. AGENDA ---
+        window.loadAppointments = async () => {
+            const date = document.getElementById('filterDate').value;
+            const list = document.getElementById('agendaList');
+            list.innerHTML = '<p style="color:#777; text-align:center;">Carregando...</p>';
+
+            try {
+                const q = query(collection(db, "agendamentos"), where("data", "==", date), orderBy("hora"));
+                const snap = await getDocs(q);
+
+                list.innerHTML = '';
+                if(snap.empty) {
+                    list.innerHTML = '<p style="color:#777; text-align:center; padding:20px;">Nenhum agendamento.</p>';
+                    return;
+                }
+                snap.forEach(d => {
+                    const data = d.data();
+                    const div = document.createElement('div');
+                    div.className = 'admin-card';
+                    div.innerHTML = `
+                        <div>
+                            <strong style="color:var(--gold-primary)">${data.hora}</strong> - ${data.cliente}
+                            <div style="font-size:0.8rem; color:#aaa;">${data.servico} (${data.profissional})</div>
+                            <div style="font-size:0.8rem; color:#777;">${data.telefone}</div>
+                        </div>
+                        <button class="btn-delete" onclick="deleteItem('agendamentos', '${d.id}')"><i class="fas fa-trash"></i></button>
+                    `;
+                    list.appendChild(div);
+                });
+            } catch(e) { console.error(e); }
+        }
+
+        // --- 2. SERVIÇOS ---
+        window.loadServices = async () => {
+            const list = document.getElementById('servicosList');
+            const q = query(collection(db, "procedimentos"), orderBy("nome"));
+            const snap = await getDocs(q);
+            list.innerHTML = '';
+            snap.forEach(d => {
+                const data = d.data();
+                divFactory(list, `<strong>${data.nome}</strong> (${data.duracao} min) - R$ ${data.preco||0}`, 'procedimentos', d.id);
+            });
+        }
+
+        window.addService = async () => {
+            const nome = document.getElementById('newServName').value;
+            const dur = document.getElementById('newServDur').value;
+            const preco = document.getElementById('newServPrice').value;
+            if(!nome) return;
+            await addDoc(collection(db, "procedimentos"), { nome, duracao: parseInt(dur), preco: parseInt(preco||0) });
+            loadServices();
+            document.getElementById('newServName').value = '';
+        }
+
+        // --- 3. EQUIPE ---
+        window.loadTeam = async () => {
+            const list = document.getElementById('equipeList');
+            const q = query(collection(db, "profissionais"), orderBy("nome"));
+            const snap = await getDocs(q);
+            list.innerHTML = '';
+            snap.forEach(d => {
+                const data = d.data();
+                divFactory(list, `<strong>${data.nome}</strong> - ${data.especialidade}`, 'profissionais', d.id);
+            });
+        }
+
+        window.addProf = async () => {
+            const nome = document.getElementById('newProfName').value;
+            const role = document.getElementById('newProfRole').value;
+            if(!nome) return;
+            await addDoc(collection(db, "profissionais"), { nome, especialidade: role });
+            loadTeam();
+            document.getElementById('newProfName').value = '';
+        }
+
+        // --- UTILITÁRIOS ---
+        function divFactory(container, html, col, id) {
+            const div = document.createElement('div');
+            div.className = 'admin-card';
+            div.innerHTML = `<div>${html}</div><button class="btn-delete" onclick="deleteItem('${col}', '${id}')"><i class="fas fa-trash"></i></button>`;
+            container.appendChild(div);
+        }
+
+        window.deleteItem = async (col, id) => {
+            if(confirm('Tem certeza?')) {
+                await deleteDoc(doc(db, col, id));
+                if(col === 'agendamentos') loadAppointments();
+                if(col === 'procedimentos') loadServices();
+                if(col === 'profissionais') loadTeam();
+            }
+        }
+    </script>
+</body>
+</html>
