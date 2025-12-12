@@ -15,99 +15,174 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// --- ESTADO GLOBAL ---
+let currentService = null;
+
 // --- ELEMENTOS ---
-const elements = {
-    form: document.getElementById('bookingForm'),
-    service: document.getElementById('service'),
+const views = {
+    services: document.getElementById('services-view'),
+    booking: document.getElementById('booking-view'),
+    listContainer: document.getElementById('services-list-container'),
+    loader: document.getElementById('loading-services')
+};
+
+const bookingElements = {
+    serviceName: document.getElementById('selectedServiceName'),
     professional: document.getElementById('professional'),
-    date: document.getElementById('date'),
+    calendarStrip: document.getElementById('calendarStrip'),
+    monthLabel: document.getElementById('monthLabel'),
+    selectedDateInput: document.getElementById('selectedDate'),
     slotsGrid: document.getElementById('slots-grid'),
     slotsLoader: document.getElementById('slots-loader'),
     selectedTimeInput: document.getElementById('selectedTime'),
-    msg: document.getElementById('message'),
+    form: document.getElementById('bookingForm'),
     btn: document.getElementById('submitBtn'),
+    msg: document.getElementById('message'),
     clientName: document.getElementById('clientName'),
     clientPhone: document.getElementById('clientPhone')
 };
 
-elements.date.min = new Date().toISOString().split("T")[0];
-
-// --- 1. CARREGAR SERVIÇOS ---
-async function loadServices() {
+// --- 1. INICIALIZAÇÃO: CARREGAR LISTA DE SERVIÇOS ---
+async function init() {
+    views.loader.style.display = 'block';
+    
     try {
         const q = query(collection(db, "procedimentos"), orderBy("nome"));
         const querySnapshot = await getDocs(q);
-        
-        elements.service.innerHTML = '<option value="" disabled selected>Selecione uma experiência...</option>';
 
+        views.listContainer.innerHTML = '';
+        
         if (querySnapshot.empty) {
-            elements.service.innerHTML = '<option value="">Nenhum serviço disponível</option>';
+            views.listContainer.innerHTML = '<p style="text-align:center; color:#777;">Nenhum serviço disponível.</p>';
             return;
         }
 
         querySnapshot.forEach((doc) => {
             const data = doc.data();
-            const option = document.createElement('option');
-            option.value = doc.id; 
-            option.textContent = `${data.nome} (${data.duracao} min)`;
-            option.setAttribute('data-duration', data.duracao);
-            elements.service.appendChild(option);
+            // Cria o card do serviço (Igual imagem 1)
+            const card = document.createElement('div');
+            card.className = 'service-card';
+            card.innerHTML = `
+                <div class="service-info">
+                    <h4>${data.nome}</h4>
+                    <p><i class="far fa-clock"></i> ${data.duracao} min</p>
+                    ${data.preco ? `<p class="service-price">R$ ${data.preco},00</p>` : ''} 
+                </div>
+                <button class="cta-btn" style="width: auto; padding: 8px 15px; font-size: 0.8rem;" onclick="selectService('${doc.id}', '${data.nome}', ${data.duracao})">
+                    Reservar
+                </button>
+            `;
+            views.listContainer.appendChild(card);
         });
+
     } catch (error) {
-        console.error("Erro serviços:", error);
-        elements.service.innerHTML = '<option value="">Erro ao carregar</option>';
+        console.error("Erro ao carregar serviços:", error);
+        views.listContainer.innerHTML = '<p style="text-align:center; color:var(--error);">Erro ao carregar.</p>';
+    } finally {
+        views.loader.style.display = 'none';
     }
 }
 
-// --- 2. CARREGAR PROFISSIONAIS (NOVO) ---
+// --- 2. TRANSIÇÃO: SELECIONAR SERVIÇO ---
+window.selectService = (id, nome, duracao) => {
+    currentService = { id, nome, duracao };
+    
+    // Atualiza UI
+    bookingElements.serviceName.textContent = nome;
+    
+    // Troca de tela
+    views.services.classList.remove('active');
+    views.booking.classList.add('active');
+
+    // Carrega dependências da tela de agendamento
+    loadProfessionals();
+    renderCalendarStrip();
+    bookingElements.slotsGrid.innerHTML = '<div style="grid-column: span 4; text-align: center; color: #555; padding: 10px;">Selecione data e profissional.</div>';
+};
+
+// --- 3. CARREGAR PROFISSIONAIS ---
 async function loadProfessionals() {
+    bookingElements.professional.innerHTML = '<option value="" disabled selected>Carregando...</option>';
     try {
-        // Ordena por nome para ficar bonito na lista
         const q = query(collection(db, "profissionais"), orderBy("nome"));
         const querySnapshot = await getDocs(q);
         
-        elements.professional.innerHTML = '<option value="" disabled selected>Selecione o especialista...</option>';
-
-        if (querySnapshot.empty) {
-            elements.professional.innerHTML = '<option value="">Nenhum profissional disponível</option>';
-            return;
-        }
+        bookingElements.professional.innerHTML = '<option value="" disabled selected>Selecione...</option>';
 
         querySnapshot.forEach((doc) => {
             const data = doc.data();
             const option = document.createElement('option');
-            option.value = doc.id; // O ID do documento é o valor chave
-            // Mostra Nome e Especialidade
+            option.value = doc.id;
             option.textContent = `${data.nome} - ${data.especialidade}`;
-            // Salvamos o nome limpo num atributo para usar depois se precisar
             option.setAttribute('data-name', data.nome);
-            elements.professional.appendChild(option);
+            bookingElements.professional.appendChild(option);
         });
     } catch (error) {
         console.error("Erro profissionais:", error);
-        elements.professional.innerHTML = '<option value="">Erro ao carregar</option>';
     }
 }
 
-// --- 3. VERIFICAR DISPONIBILIDADE ---
+// --- 4. RENDERIZAR CALENDÁRIO HORIZONTAL (Igual Imagem 2) ---
+function renderCalendarStrip() {
+    const strip = bookingElements.calendarStrip;
+    strip.innerHTML = '';
+    
+    const today = new Date();
+    const daysOfWeek = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+    const months = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    
+    // Atualiza o mês no topo (baseado em hoje por simplicidade)
+    bookingElements.monthLabel.textContent = `${months[today.getMonth()]} ${today.getFullYear()}`;
+
+    // Gera os próximos 14 dias
+    for (let i = 0; i < 14; i++) {
+        const date = new Date();
+        date.setDate(today.getDate() + i);
+        
+        // Formato YYYY-MM-DD para o value
+        const dateVal = date.toISOString().split('T')[0];
+        
+        const dayName = daysOfWeek[date.getDay()];
+        const dayNumber = date.getDate();
+
+        // Cria o botão da data
+        const btn = document.createElement('div');
+        btn.className = 'date-card';
+        // Se for domingo (dia 0), pode desabilitar visualmente se quiser
+        if(date.getDay() === 0) btn.style.opacity = "0.5"; 
+
+        btn.innerHTML = `
+            <span class="day">${dayName}</span>
+            <span class="date">${dayNumber}</span>
+        `;
+        
+        btn.onclick = () => {
+            // Remove seleção anterior
+            document.querySelectorAll('.date-card').forEach(b => b.classList.remove('selected'));
+            // Adiciona seleção atual
+            btn.classList.add('selected');
+            // Atualiza input oculto
+            bookingElements.selectedDateInput.value = dateVal;
+            // Carrega horários
+            loadAvailability();
+        };
+
+        strip.appendChild(btn);
+    }
+}
+
+// --- 5. DISPONIBILIDADE E SLOTS ---
 async function loadAvailability() {
-    const dateVal = elements.date.value;
-    const profId = elements.professional.value; // Agora usamos o ID do Firebase
-    const serviceIndex = elements.service.selectedIndex;
-
-    if(serviceIndex === -1) return;
-    const serviceOpt = elements.service.options[serviceIndex];
+    const profId = bookingElements.professional.value;
+    const dateVal = bookingElements.selectedDateInput.value;
     
-    if (!dateVal || !profId || !serviceOpt.value) return;
+    if (!profId || !dateVal || !currentService) return;
 
-    const duration = parseInt(serviceOpt.getAttribute('data-duration'));
-    
-    elements.slotsGrid.innerHTML = '';
-    elements.slotsLoader.style.display = 'block';
-    elements.selectedTimeInput.value = '';
+    bookingElements.slotsGrid.innerHTML = '';
+    bookingElements.slotsLoader.style.display = 'block';
+    bookingElements.selectedTimeInput.value = '';
 
     try {
-        // Busca agendamentos onde o profissionalId seja igual ao selecionado
         const q = query(
             collection(db, "agendamentos"),
             where("profissionalId", "==", profId),
@@ -116,143 +191,118 @@ async function loadAvailability() {
         
         const querySnapshot = await getDocs(q);
         const busyTimes = [];
-
         querySnapshot.forEach((doc) => {
             const data = doc.data();
             busyTimes.push({ start: data.hora, duration: data.duracao });
         });
 
-        generateSlots(busyTimes, duration);
+        generateSlots(busyTimes, currentService.duracao);
 
     } catch (error) {
         console.error("Erro agenda:", error);
-        elements.msg.innerHTML = `<span class="error">Erro ao verificar horários.</span>`;
+        bookingElements.msg.innerHTML = '<span class="error">Erro ao buscar horários.</span>';
     } finally {
-        elements.slotsLoader.style.display = 'none';
+        bookingElements.slotsLoader.style.display = 'none';
     }
 }
 
-// --- 4. GERAR SLOTS ---
-function generateSlots(busyTimes, serviceDuration) {
+function generateSlots(busyTimes, duration) {
     const startHour = 9; 
     const endHour = 19; 
     const interval = 30; 
 
     let currentTime = new Date();
     currentTime.setHours(startHour, 0, 0, 0);
-
     const endTime = new Date();
     endTime.setHours(endHour, 0, 0, 0);
 
-    let slotsHtml = '';
+    let html = '';
     let hasSlots = false;
 
     while (currentTime < endTime) {
-        const timeString = currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
-        const serviceEndTime = new Date(currentTime.getTime() + serviceDuration * 60000);
+        const timeStr = currentTime.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
         
-        const isBusy = checkCollision(timeString, serviceDuration, busyTimes);
-        const isTooLate = serviceEndTime > endTime;
+        // Colisão
+        const serviceEnd = new Date(currentTime.getTime() + duration * 60000);
+        const isBusy = checkCollision(timeStr, duration, busyTimes);
+        const isTooLate = serviceEnd > endTime;
 
         if (!isBusy && !isTooLate) {
-            slotsHtml += `<button type="button" class="slot-btn" onclick="selectSlot(this, '${timeString}')">${timeString}</button>`;
+            html += `<button type="button" class="slot-btn" onclick="selectSlot(this, '${timeStr}')">${timeStr}</button>`;
             hasSlots = true;
         }
         currentTime.setMinutes(currentTime.getMinutes() + interval);
     }
 
     if (!hasSlots) {
-        elements.slotsGrid.innerHTML = '<p style="grid-column: span 4; color: var(--text-muted); text-align: center; padding: 10px;">Sem horários para este serviço com este profissional hoje.</p>';
+        bookingElements.slotsGrid.innerHTML = '<p style="grid-column: span 4; color: #777; text-align: center;">Sem horários livres.</p>';
     } else {
-        elements.slotsGrid.innerHTML = slotsHtml;
+        bookingElements.slotsGrid.innerHTML = html;
     }
 }
 
-// --- 5. COLISÃO ---
 function checkCollision(slotTime, newDuration, busyList) {
-    const timeToMin = (t) => {
-        const [h, m] = t.split(':').map(Number);
-        return h * 60 + m;
-    };
-    const newStart = timeToMin(slotTime);
-    const newEnd = newStart + newDuration;
+    const toMin = t => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+    const start = toMin(slotTime);
+    const end = start + newDuration;
 
     for (let busy of busyList) {
-        const busyStart = timeToMin(busy.start);
-        const busyEnd = busyStart + busy.duration;
-        if (newStart < busyEnd && newEnd > busyStart) return true; 
+        const bStart = toMin(busy.start);
+        const bEnd = bStart + busy.duration;
+        if (start < bEnd && end > bStart) return true;
     }
     return false;
 }
 
-// --- 6. SALVAR ---
-async function handleFormSubmit(e) {
+// Helper Global para seleção de slot
+window.selectSlot = (btn, time) => {
+    document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
+    btn.classList.add('selected');
+    bookingElements.selectedTimeInput.value = time;
+};
+
+// --- 6. SUBMIT ---
+bookingElements.form.addEventListener('submit', async (e) => {
     e.preventDefault();
-    const time = elements.selectedTimeInput.value;
     
-    if (!time) {
-        elements.msg.innerHTML = '<span class="error">Selecione um horário.</span>';
+    if (!bookingElements.selectedTimeInput.value) {
+        bookingElements.msg.innerHTML = '<span class="error">Selecione um horário.</span>';
         return;
     }
 
-    elements.btn.disabled = true;
-    elements.btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Agendando...';
+    bookingElements.btn.disabled = true;
+    bookingElements.btn.textContent = 'Agendando...';
 
     try {
-        const serviceOpt = elements.service.options[elements.service.selectedIndex];
-        const profOpt = elements.professional.options[elements.professional.selectedIndex];
-
+        const profOpt = bookingElements.professional.options[bookingElements.professional.selectedIndex];
+        
         await addDoc(collection(db, "agendamentos"), {
-            cliente: elements.clientName.value,
-            telefone: elements.clientPhone.value,
-            
-            // Dados do Serviço
-            servico: serviceOpt.text.split(' (')[0], // Pega só o nome, tira a duração
-            servicoId: serviceOpt.value,
-            duracao: parseInt(serviceOpt.getAttribute('data-duration')),
-            
-            // Dados do Profissional
-            profissional: profOpt.getAttribute('data-name'), // Nome legível
-            profissionalId: profOpt.value, // ID do banco (para busca)
-            
-            data: elements.date.value,
-            hora: time,
+            cliente: bookingElements.clientName.value,
+            telefone: bookingElements.clientPhone.value,
+            servico: currentService.nome,
+            servicoId: currentService.id,
+            duracao: currentService.duracao,
+            profissional: profOpt.getAttribute('data-name'),
+            profissionalId: profOpt.value,
+            data: bookingElements.selectedDateInput.value,
+            hora: bookingElements.selectedTimeInput.value,
             status: 'pendente',
             criadoEm: Timestamp.now()
         });
 
-        elements.msg.innerHTML = '<span class="success"><i class="fas fa-check-circle"></i> Agendamento confirmado!</span>';
-        elements.form.reset();
-        elements.slotsGrid.innerHTML = '<div style="grid-column: span 4; text-align: center; color: #555;">Dados resetados.</div>';
-        elements.selectedTimeInput.value = '';
-        
-        // Recarrega as listas para resetar os selects visualmente
-        loadServices();
-        loadProfessionals();
+        bookingElements.msg.innerHTML = '<span class="success">Agendado com sucesso!</span>';
+        setTimeout(() => location.reload(), 2000); // Recarrega para voltar ao início
 
     } catch (error) {
         console.error(error);
-        elements.msg.innerHTML = '<span class="error">Erro ao agendar. Tente novamente.</span>';
-    } finally {
-        elements.btn.disabled = false;
-        elements.btn.textContent = "Confirmar Agendamento";
+        bookingElements.msg.innerHTML = '<span class="error">Erro ao agendar.</span>';
+        bookingElements.btn.disabled = false;
+        bookingElements.btn.textContent = 'Confirmar Agendamento';
     }
-}
-
-// Helpers
-window.selectSlot = (btn, time) => {
-    document.querySelectorAll('.slot-btn').forEach(b => b.classList.remove('selected'));
-    btn.classList.add('selected');
-    elements.selectedTimeInput.value = time;
-};
-
-// Iniciar
-window.addEventListener('DOMContentLoaded', () => {
-    loadServices();
-    loadProfessionals();
 });
 
-elements.date.addEventListener('change', loadAvailability);
-elements.professional.addEventListener('change', loadAvailability);
-elements.service.addEventListener('change', loadAvailability);
-elements.form.addEventListener('submit', handleFormSubmit);
+// Listener de mudança no profissional para recarregar slots se já tiver data
+bookingElements.professional.addEventListener('change', loadAvailability);
+
+// Inicia
+init();
