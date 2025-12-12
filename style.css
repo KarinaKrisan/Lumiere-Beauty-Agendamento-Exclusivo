@@ -1,40 +1,28 @@
 /* --- IMPORTAÇÕES --- */
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&family=Lato:wght@300;400;700&display=swap');
-@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Lato:wght@300;400;700&display=swap');
+@import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css');
 
 /* --- VARIÁVEIS GLOBAIS --- */
 :root {
     /* Paleta Dark Luxury Rose Gold */
-    --bg-dark: #0a0a0a; /* Preto mais profundo */
-    --bg-card: rgba(30, 30, 30, 0.6); /* Vidro escuro */
-    --bg-input: rgba(255, 255, 255, 0.03);
-    
-    --text-main: #F5F5F5;
-    --text-muted: #888888;
-    
-    /* Rose Gold Refinado */
-    --gold-primary: #D4AF37; /* Base dourada mais rica */
-    --rose-gold: #B76E79;
-    --gold-gradient: linear-gradient(135deg, #B76E79 0%, #e0aaeb 50%, #B76E79 100%);
-    --gold-glow: 0 0 15px rgba(183, 110, 121, 0.3);
-    
+    --bg-dark: #121212;
+    --bg-card: #1E1E1E;
+    --text-main: #E0E0E0;
+    --text-muted: #A0A0A0;
+    --gold-primary: #B76E79; /* Rose Gold */
+    --gold-hover: #D48C96;
+    --gold-gradient: linear-gradient(135deg, #B76E79 0%, #d698a3 100%);
     --error: #ff4d4d;
     --success: #4caf50;
-    
-    /* Bordas e Transições */
-    --border-subtle: 1px solid rgba(255, 255, 255, 0.08);
-    --border-focus: 1px solid rgba(183, 110, 121, 0.5);
-    --ease-smooth: all 0.4s cubic-bezier(0.25, 0.8, 0.25, 1);
-    --radius-lg: 24px;
-    --radius-sm: 12px;
+    --input-bg: #252525;
+    --border-color: #333;
+    --creme-claro: #fdf5e6; /* Cor semelhante ao botão da imagem 0 */
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
 body {
     background-color: var(--bg-dark);
-    /* Adiciona um gradiente sutil no fundo para profundidade */
-    background-image: radial-gradient(circle at top right, rgba(183, 110, 121, 0.08), transparent 40%);
     color: var(--text-main);
     font-family: 'Lato', sans-serif;
     min-height: 100vh;
@@ -44,251 +32,179 @@ body {
     padding: 20px;
 }
 
-/* Tipografia de Luxo */
-h1, h2, h3, h4 { 
-    font-family: 'Playfair Display', serif; 
-    font-weight: 400;
-}
+h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
 
-/* --- SCROLLBAR PREMIUM --- */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: rgba(183, 110, 121, 0.3); border-radius: 10px; }
-::-webkit-scrollbar-thumb:hover { background: var(--rose-gold); }
-
-/* --- CONTAINER GLASSMORPHISM --- */
+/* --- CONTAINER PRINCIPAL --- */
 .container {
     width: 100%;
-    max-width: 500px;
+    max-width: 600px; /* Levemente mais largo para acomodar a lista */
     background: var(--bg-card);
-    backdrop-filter: blur(16px); /* Efeito de vidro fosco */
-    -webkit-backdrop-filter: blur(16px);
-    padding: 45px;
-    border-radius: var(--radius-lg);
-    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    padding: 30px;
+    border-radius: 15px;
+    box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+    border: 1px solid rgba(183, 110, 121, 0.1);
     position: relative;
     overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 500px;
 }
 
-/* Detalhe superior brilhante */
+/* Detalhe Dourado no Topo */
 .container::before {
     content: '';
     position: absolute;
     top: 0; left: 0; width: 100%; height: 3px;
     background: var(--gold-gradient);
-    box-shadow: 0 2px 15px rgba(183, 110, 121, 0.5);
 }
 
-.container.admin-container { max-width: 900px; }
+header { text-align: left; margin-bottom: 25px; border-bottom: 1px solid #333; padding-bottom: 15px; display: flex; align-items: center; gap: 15px; }
+.header-avatar { width: 50px; height: 50px; background: #333; border-radius: 50%; display: flex; justify-content: center; align-items: center; color: #777; font-size: 1.2rem; }
+header h1 { color: var(--text-main); font-size: 1.5rem; margin: 0; }
+header p { color: var(--text-muted); font-size: 0.8rem; margin: 0; }
 
-header { text-align: center; margin-bottom: 40px; position: relative; }
-header h1 { 
-    color: var(--text-main); /* Branco suave fica mais chique que dourado no titulo */
-    font-size: 2.8rem; 
-    margin-bottom: 5px; 
-    letter-spacing: 1px;
-    background: var(--gold-gradient);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent; /* Texto degradê */
-}
-header p { 
-    color: var(--text-muted); 
-    letter-spacing: 3px; 
-    text-transform: uppercase; 
-    font-size: 0.7rem; 
-    font-weight: 700;
+/* --- LISTA DE SERVIÇOS (IGUAL IMAGEM 2) --- */
+.service-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
 }
 
-/* --- FORMULÁRIOS --- */
-.form-group { margin-bottom: 25px; }
-label { 
-    display: block; 
-    margin-bottom: 10px; 
-    color: var(--rose-gold); 
-    font-size: 0.85rem; 
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    font-weight: 600;
-}
-
-input, select {
-    width: 100%;
-    padding: 16px;
-    background: var(--bg-input);
-    border: var(--border-subtle);
-    border-radius: var(--radius-sm);
-    color: white;
-    font-size: 1rem;
-    outline: none;
-    transition: var(--ease-smooth);
-    font-family: 'Lato', sans-serif;
-}
-
-input:focus, select:focus {
-    background: rgba(255, 255, 255, 0.05);
-    border-color: var(--rose-gold);
-    box-shadow: 0 0 20px rgba(183, 110, 121, 0.15);
-    transform: translateY(-1px);
-}
-
-/* Placeholder sutil */
-::placeholder { color: rgba(255,255,255,0.2); }
-
-/* Ícone de calendário customizado */
-::-webkit-calendar-picker-indicator {
-    filter: invert(1) sepia(0.5) saturate(3) hue-rotate(300deg);
-    opacity: 0.7;
-    cursor: pointer;
-}
-
-/* --- BOTÕES & CTA --- */
-.cta-btn {
-    width: 100%;
-    padding: 18px;
-    background: var(--gold-gradient);
-    background-size: 200% auto;
-    color: #1a1a1a;
-    border: none;
-    border-radius: var(--radius-sm);
-    font-weight: 700;
-    font-size: 0.95rem;
-    cursor: pointer;
-    margin-top: 15px;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    transition: var(--ease-smooth);
-    box-shadow: 0 10px 20px -5px rgba(183, 110, 121, 0.4);
-}
-
-.cta-btn:hover { 
-    background-position: right center; /* Anima o gradiente */
-    transform: translateY(-3px); 
-    box-shadow: 0 15px 30px -5px rgba(183, 110, 121, 0.6); 
-}
-.cta-btn:active { transform: translateY(-1px); }
-.cta-btn:disabled { 
-    background: #333; color: #666; cursor: not-allowed; box-shadow: none; 
-}
-
-/* --- SLOTS DE HORÁRIO --- */
-.slots-container {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 12px;
-    margin-top: 10px;
-}
-
-.slot-btn {
+.service-card {
     background: transparent;
-    border: 1px solid rgba(255,255,255,0.1);
-    color: var(--text-muted);
-    padding: 12px;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: var(--ease-smooth);
-    font-size: 0.9rem;
-    text-align: center;
-}
-
-.slot-btn:hover:not(:disabled) { 
-    border-color: var(--rose-gold); 
-    color: var(--rose-gold);
-    background: rgba(183, 110, 121, 0.05);
-    box-shadow: var(--gold-glow);
-}
-
-.slot-btn.selected { 
-    background: var(--rose-gold); 
-    color: white; 
-    font-weight: 700; 
-    border-color: var(--rose-gold);
-    box-shadow: 0 5px 15px rgba(183, 110, 121, 0.4);
-    transform: scale(1.05);
-}
-
-.slot-btn:disabled { 
-    opacity: 0.3; cursor: not-allowed; text-decoration: line-through; border-color: transparent;
-}
-
-/* --- FEEDBACK --- */
-#message, #loginMsg { margin-top: 25px; text-align: center; font-size: 0.9rem; letter-spacing: 0.5px; }
-.error { color: #ff6b6b; text-shadow: 0 0 10px rgba(255, 107, 107, 0.2); }
-.success { color: #69f0ae; text-shadow: 0 0 10px rgba(105, 240, 174, 0.2); }
-
-/* --- ADMIN PANEL (Cards) --- */
-#login-overlay {
-    background: rgba(10, 10, 10, 0.95);
-    backdrop-filter: blur(10px);
-}
-
-.tab-nav {
-    border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-
-.tab-btn {
-    font-family: 'Playfair Display', serif;
-    letter-spacing: 1px;
-    opacity: 0.6;
-}
-.tab-btn:hover { opacity: 1; }
-.tab-btn.active { 
-    color: var(--rose-gold); 
-    opacity: 1;
-    border-bottom: 2px solid var(--rose-gold); 
-}
-
-.admin-card {
-    background: rgba(255, 255, 255, 0.03);
-    padding: 25px;
-    border-radius: 16px;
-    border-left: 3px solid var(--rose-gold);
+    padding: 15px 0;
+    border-bottom: 1px solid #333;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    transition: var(--ease-smooth);
-    margin-bottom: 10px;
-    border-top: 1px solid rgba(255,255,255,0.05);
+}
+.service-card:last-child { border-bottom: none; }
+
+.service-info h4 { color: var(--text-main); font-size: 1rem; margin-bottom: 5px; font-weight: bold; }
+.service-meta { display: flex; flex-direction: column; gap: 3px; font-size: 0.85rem; color: var(--text-muted); }
+.service-meta span { display: flex; align-items: center; gap: 5px; }
+.service-meta i { font-size: 0.8rem; width: 15px; }
+
+/* Botão "Agendar" Melhorado */
+.btn-reservar {
+    background: var(--creme-claro); /* Cor clara semelhante ao botão da imagem 0 */
+    color: #333;
+    border: 1px solid var(--creme-claro);
+    padding: 10px 18px; /* Levemente maior */
+    border-radius: 8px;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px; /* Mais espaço entre ícone e texto */
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+.btn-reservar:hover { 
+    background: var(--gold-primary); 
+    color: white; 
+    border-color: var(--gold-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(183, 110, 121, 0.3);
+}
+.btn-reservar i {
+    font-size: 1rem;
 }
 
-.admin-card:hover { 
-    transform: translateX(8px); 
-    background: rgba(255, 255, 255, 0.06);
-    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+/* --- TELA DE AGENDAMENTO --- */
+.view-section { display: none; animation: fadeIn 0.4s; width: 100%; }
+.view-section.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.booking-header { text-align: center; margin-bottom: 20px; }
+.booking-header h3 { font-size: 1.1rem; color: var(--text-main); margin-bottom: 5px; }
+.booking-header p { color: var(--text-muted); font-size: 0.9rem; }
+.selected-prof-avatar { width: 60px; height: 60px; background: #333; border-radius: 50%; margin: 10px auto; border: 2px solid var(--gold-primary); background-size: cover; background-position: center; }
+
+/* Calendário Horizontal */
+.calendar-wrapper { text-align: center; margin-bottom: 25px; }
+.month-label { color: var(--text-muted); margin-bottom: 10px; font-size: 0.9rem; }
+
+.calendar-strip {
+    display: flex;
+    justify-content: center; /* Centraliza se tiver poucos dias */
+    overflow-x: auto;
+    gap: 8px;
+    padding-bottom: 10px;
+}
+.calendar-strip::-webkit-scrollbar { height: 4px; }
+.calendar-strip::-webkit-scrollbar-thumb { background: var(--gold-primary); border-radius: 4px; }
+
+.date-card {
+    min-width: 60px;
+    height: 70px;
+    background: #f8f9fa; /* Fundo claro igual imagem */
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+    transition: 0.2s;
+    color: #333;
+}
+.date-card span.day { font-size: 0.75rem; text-transform: lowercase; color: #777; margin-bottom: 2px; }
+.date-card span.date { font-size: 1.2rem; font-weight: bold; color: #333; }
+
+.date-card:hover { transform: translateY(-2px); }
+.date-card.selected { 
+    background: #fff9c4; /* Amarelo claro igual imagem */
+    border: 1px solid #fbc02d;
 }
 
-.btn-delete {
-    width: 40px; height: 40px;
-    border-radius: 50%;
-    border: 1px solid rgba(255, 77, 77, 0.3);
-    color: #ff4d4d;
-    transition: var(--ease-smooth);
-}
-.btn-delete:hover {
-    background: #ff4d4d;
-    color: white;
-    transform: rotate(90deg);
+/* Grid de Horários */
+.time-selection { text-align: center; }
+.time-label { color: var(--text-muted); margin-bottom: 15px; font-size: 0.9rem; }
+
+.slots-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
 }
 
-/* Controles Admin */
-.admin-controls { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 30px; }
-.admin-controls button {
-    background: #222;
-    color: #fff;
-    border: 1px solid #333;
-    flex: 1;
-    transition: var(--ease-smooth);
+.slot-btn {
+    background: #f8f9fa;
+    border: 1px solid #ddd;
+    color: #333;
+    padding: 10px 20px;
+    border-radius: 20px; /* Redondo igual imagem */
+    cursor: pointer;
+    font-size: 0.9rem;
+    transition: 0.2s;
 }
-.admin-controls button:hover {
-    border-color: var(--rose-gold);
-    color: var(--rose-gold);
+.slot-btn:hover { border-color: var(--gold-primary); }
+.slot-btn.selected { background: var(--gold-primary); color: white; border-color: var(--gold-primary); }
+
+/* MENSAGEM NENHUM HORÁRIO (IGUAL IMAGEM 3) */
+.no-slots-message {
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    margin-top: 30px;
+    width: 100%;
 }
 
-/* Responsividade */
-@media (max-width: 600px) {
-    .container { padding: 30px 20px; border-radius: 0; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; border: none; }
-    .slots-container { grid-template-columns: repeat(3, 1fr); }
-    .admin-controls { flex-direction: column; }
-    .admin-card { flex-direction: column; text-align: center; gap: 15px; }
-    header h1 { font-size: 2.2rem; }
+/* Form Cliente */
+.client-form { margin-top: 30px; border-top: 1px solid #333; padding-top: 20px; }
+.form-group { margin-bottom: 15px; }
+.form-group input { 
+    width: 100%; padding: 12px; border-radius: 8px; border: 1px solid #444; 
+    background: #252525; color: white; outline: none; 
 }
+.form-group input:focus { border-color: var(--gold-primary); }
+
+.cta-btn {
+    width: 100%; padding: 15px; background: var(--gold-gradient); color: #121212;
+    border: none; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 10px;
+}
+.cta-btn:disabled { opacity: 0.6; cursor: wait; }
+
+/* Botão Voltar */
+.back-btn { background: none; border: none; color: var(--gold-primary); cursor: pointer; position: absolute; top: 20px; right: 20px; font-size: 1.2rem; }
