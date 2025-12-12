@@ -69,7 +69,7 @@ async function init() {
                     </div>
                 </div>
                 <button class="btn-reservar" onclick="selectService('${doc.id}', '${data.nome}', ${data.duracao})">
-                    <i class="far fa-calendar-check"></i> Reservar
+                    <i class="far fa-calendar-check"></i> Agendar
                 </button>
             `;
             views.list.appendChild(div);
@@ -91,14 +91,12 @@ window.selectService = (id, nome, duracao) => {
     currentService = { id, nome, duracao };
     bookingEl.serviceName.textContent = nome;
     
-    // Troca tela
     views.services.classList.remove('active');
     views.booking.classList.add('active');
     
     loadProfessionals();
     renderCalendar();
     
-    // Reset visual
     bookingEl.slotsGrid.innerHTML = '<p style="color:#777; font-size:0.9rem">Selecione data e profissional.</p>';
     bookingEl.timeLabel.style.display = 'block';
 };
@@ -113,7 +111,7 @@ async function loadProfessionals() {
             const d = doc.data();
             const opt = document.createElement('option');
             opt.value = doc.id;
-            opt.text = d.nome; // Apenas o nome fica mais limpo no select centralizado
+            opt.text = d.nome;
             opt.setAttribute('data-name', d.nome);
             bookingEl.profSelect.appendChild(opt);
         });
@@ -137,7 +135,7 @@ function renderCalendar() {
         
         const btn = document.createElement('div');
         btn.className = 'date-card';
-        if(d.getDay() === 0) btn.style.opacity = '0.5'; // Domingo visualmente desabilitado
+        if(d.getDay() === 0) btn.style.opacity = '0.5';
 
         btn.innerHTML = `
             <span class="day">${days[d.getDay()]}</span>
@@ -162,7 +160,7 @@ async function checkAvailability() {
     
     bookingEl.slotsGrid.innerHTML = '';
     bookingEl.slotsLoader.style.display = 'block';
-    bookingEl.timeLabel.style.display = 'block'; // Mostra label por padrão
+    bookingEl.timeLabel.style.display = 'block';
 
     try {
         const q = query(collection(db, "agendamentos"), 
@@ -185,7 +183,7 @@ async function checkAvailability() {
 function generateSlots(busy, duration) {
     const startHour = 9;
     const endHour = 19;
-    const interval = 30; // Minutos
+    const interval = 30;
     
     let now = new Date();
     now.setHours(startHour, 0, 0, 0);
@@ -210,9 +208,8 @@ function generateSlots(busy, duration) {
     }
 
     if(count === 0) {
-        // AQUI ESTÁ A LÓGICA DA MENSAGEM
         bookingEl.slotsGrid.innerHTML = `<div class="no-slots-message">Nenhum horário disponível</div>`;
-        bookingEl.timeLabel.style.display = 'none'; // Esconde "Selecione o horário"
+        bookingEl.timeLabel.style.display = 'none';
     } else {
         bookingEl.slotsGrid.innerHTML = html;
     }
@@ -226,7 +223,6 @@ function checkCollision(time, dur, busyList) {
     for(let b of busyList) {
         const bStart = toMin(b.start);
         const bEnd = bStart + b.duration;
-        // Colisão: Novo começa dentro do ocupado OU novo termina dentro do ocupado
         if( (start >= bStart && start < bEnd) || (end > bStart && end <= bEnd) || (start <= bStart && end >= bEnd) ) return true;
     }
     return false;
@@ -238,7 +234,6 @@ window.selectTime = (el, time) => {
     bookingEl.timeInput.value = time;
 };
 
-// SUBMIT
 bookingEl.form.addEventListener('submit', async (e) => {
     e.preventDefault();
     if(!bookingEl.timeInput.value) {
@@ -273,7 +268,6 @@ bookingEl.form.addEventListener('submit', async (e) => {
     }
 });
 
-// Listener Profissional
 bookingEl.profSelect.addEventListener('change', checkAvailability);
 
 init();
