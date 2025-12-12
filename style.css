@@ -31,13 +31,13 @@ body {
     padding: 20px;
 }
 
-h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
+h1, h2, h3 { font-family: 'Playfair Display', serif; }
 
 /* --- COMPONENTES GERAIS (Container, Inputs, Botões) --- */
 
 .container {
     width: 100%;
-    max-width: 500px;
+    max-width: 500px; /* Padrão cliente */
     background: var(--bg-card);
     padding: 40px;
     border-radius: 20px;
@@ -45,12 +45,9 @@ h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
     border: 1px solid rgba(183, 110, 121, 0.1);
     position: relative;
     overflow: hidden;
-    /* Ajuste para garantir que o calendário não quebre o layout */
-    display: flex;
-    flex-direction: column; 
 }
 
-/* Container mais largo apenas para o admin */
+/* Ajuste para admin ser mais largo */
 .container.admin-container {
     max-width: 800px;
 }
@@ -119,7 +116,9 @@ input:focus, select:focus {
 .error { color: var(--error); }
 .success { color: var(--success); }
 
-/* --- COMPONENTES DE AGENDAMENTO (SLOTS) --- */
+/* --- ÁREA DO CLIENTE (Agendamento) --- */
+
+::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.6; cursor: pointer; }
 
 .slots-container {
     display: grid;
@@ -156,108 +155,69 @@ input:focus, select:focus {
 
 .slot-btn:disabled { opacity: 0.2; cursor: not-allowed; background: #1a1a1a; text-decoration: line-through; }
 
+/* --- ÁREA ADMINISTRATIVA (Novo) --- */
 
-/* --- NOVOS ESTILOS (LAYOUT TIPO SALONSOFT) --- */
-
-/* Controle de Telas (Views) */
-.view-section { display: none; animation: fadeIn 0.5s; width: 100%; }
-.view-section.active { display: block; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-/* Header de Navegação (Seta Voltar) */
-.nav-header { display: flex; align-items: center; margin-bottom: 20px; }
-.back-btn { background: none; border: none; color: var(--gold-primary); font-size: 1.2rem; cursor: pointer; margin-right: 15px; }
-
-/* Lista de Serviços (Cards) */
-.service-card {
-    background: #252525;
-    padding: 15px;
-    border-radius: 10px;
-    margin-bottom: 15px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border: 1px solid #333;
-    transition: transform 0.2s ease;
-}
-.service-card:hover { border-color: var(--gold-primary); transform: translateX(2px); }
-
-.service-info h4 { color: var(--gold-primary); margin-bottom: 5px; font-size: 1rem; }
-.service-info p { color: #aaa; font-size: 0.85rem; margin-bottom: 2px;}
-.service-price { color: #fff; font-weight: bold; margin-top: 5px; }
-
-/* Calendário Horizontal */
-.calendar-strip {
-    display: flex;
-    overflow-x: auto;
-    gap: 10px;
-    padding-bottom: 10px;
-    margin-bottom: 20px;
-    /* Estilização da barra de rolagem */
-    scrollbar-width: thin; /* Firefox */
-    scrollbar-color: var(--gold-primary) #222;
-}
-
-.calendar-strip::-webkit-scrollbar { height: 6px; }
-.calendar-strip::-webkit-scrollbar-track { background: #222; border-radius: 10px; }
-.calendar-strip::-webkit-scrollbar-thumb { background-color: var(--gold-primary); border-radius: 10px; }
-
-.date-card {
-    min-width: 70px;
-    background: #252525;
-    border: 1px solid #333;
-    border-radius: 8px;
-    padding: 10px 5px;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.3s;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    flex-shrink: 0; /* Impede que os cards encolham */
-}
-
-.date-card span.day { font-size: 0.8rem; color: #aaa; text-transform: uppercase; margin-bottom: 5px; display: block; }
-.date-card span.date { font-size: 1.2rem; font-weight: bold; color: #fff; }
-
-.date-card:hover { border-color: var(--gold-primary); background: rgba(183, 110, 121, 0.1); }
-.date-card.selected { background: var(--gold-gradient); border-color: transparent; }
-.date-card.selected span.day, .date-card.selected span.date { color: #121212; font-weight: bold; }
-
-
-/* --- ESTILOS DO ADMIN (Mantidos para compatibilidade) --- */
+/* Login Overlay */
 #login-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
     background: var(--bg-dark); z-index: 1000;
     display: flex; justify-content: center; align-items: center; flex-direction: column;
 }
 
+/* Navegação por Abas */
 .tab-nav {
-    display: flex; justify-content: center; gap: 15px; margin-bottom: 30px;
-    border-bottom: 1px solid rgba(183, 110, 121, 0.2); padding-bottom: 15px;
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-bottom: 30px;
+    border-bottom: 1px solid rgba(183, 110, 121, 0.2);
+    padding-bottom: 15px;
 }
-.tab-btn {
-    background: transparent; border: none; color: var(--text-muted); font-size: 1.1rem;
-    cursor: pointer; padding: 10px 20px; transition: all 0.3s; font-family: 'Playfair Display', serif;
-}
-.tab-btn:hover { color: var(--gold-primary); }
-.tab-btn.active { color: var(--gold-primary); border-bottom: 2px solid var(--gold-primary); }
 
+.tab-btn {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 10px 20px;
+    transition: all 0.3s;
+    font-family: 'Playfair Display', serif;
+}
+
+.tab-btn:hover { color: var(--gold-primary); }
+
+.tab-btn.active {
+    color: var(--gold-primary);
+    border-bottom: 2px solid var(--gold-primary);
+}
+
+/* Animação das Abas */
 .tab-content { display: none; animation: fadeIn 0.5s; }
 .tab-content.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 
-.dashboard-controls { display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; }
+/* Controles do Painel */
+.dashboard-controls {
+    display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap;
+}
 .dashboard-controls input { flex: 1; min-width: 200px; }
 .dashboard-controls button { flex: 1; background: #333; color: white; border: 1px solid #444; }
 .dashboard-controls button:hover { background: var(--gold-primary); color: #121212; }
 
+/* Listas e Cards Admin */
 .list-container { display: flex; flex-direction: column; gap: 15px; }
 
 .admin-card {
-    background: #252525; padding: 20px; border-radius: 12px;
+    background: #252525;
+    padding: 20px;
+    border-radius: 12px;
     border-left: 4px solid var(--gold-primary);
-    display: flex; justify-content: space-between; align-items: center;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: transform 0.2s;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    transition: transform 0.2s;
 }
 .admin-card:hover { transform: translateX(5px); background: #2a2a2a; }
 
@@ -273,14 +233,19 @@ input:focus, select:focus {
 }
 .btn-delete:hover { background: var(--error); color: white; }
 
+/* Formulário de Adicionar Serviço */
 .add-service-box {
-    background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 10px;
-    margin-bottom: 25px; border: 1px dashed var(--gold-primary);
+    background: rgba(255, 255, 255, 0.05);
+    padding: 20px;
+    border-radius: 10px;
+    margin-bottom: 25px;
+    border: 1px dashed var(--gold-primary);
 }
 .add-row { display: flex; gap: 10px; align-items: flex-end; }
 .add-row .form-group { margin-bottom: 0; flex: 1; }
 .add-row button { margin-top: 0; }
 
+/* Responsividade Admin */
 @media (max-width: 600px) {
     .container { padding: 30px 20px; }
     .add-row { flex-direction: column; }
