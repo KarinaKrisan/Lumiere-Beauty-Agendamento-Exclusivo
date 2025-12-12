@@ -33,7 +33,8 @@ body {
 
 h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
 
-/* --- CONTAINER PRINCIPAL --- */
+/* --- COMPONENTES GERAIS (Container, Inputs, Botões) --- */
+
 .container {
     width: 100%;
     max-width: 500px;
@@ -44,14 +45,16 @@ h1, h2, h3, h4 { font-family: 'Playfair Display', serif; }
     border: 1px solid rgba(183, 110, 121, 0.1);
     position: relative;
     overflow: hidden;
+    /* Ajuste para garantir que o calendário não quebre o layout */
+    display: flex;
+    flex-direction: column; 
 }
 
-/* Ajuste para o Admin ser mais largo */
+/* Container mais largo apenas para o admin */
 .container.admin-container {
     max-width: 800px;
 }
 
-/* Detalhe Dourado no Topo */
 .container::before {
     content: '';
     position: absolute;
@@ -63,7 +66,7 @@ header { text-align: center; margin-bottom: 35px; }
 header h1 { color: var(--gold-primary); font-size: 2.5rem; margin-bottom: 5px; letter-spacing: 1px; }
 header p { color: var(--text-muted); letter-spacing: 2px; text-transform: uppercase; font-size: 0.75rem; }
 
-/* --- FORMULÁRIOS E INPUTS --- */
+/* Formulários */
 .form-group { margin-bottom: 25px; position: relative; }
 label { display: block; margin-bottom: 8px; color: var(--gold-primary); font-size: 0.9rem; letter-spacing: 0.5px; }
 
@@ -86,14 +89,7 @@ input:focus, select:focus {
     background: #2a2a2a;
 }
 
-/* Ajuste ícone calendário */
-::-webkit-calendar-picker-indicator {
-    filter: invert(1);
-    opacity: 0.6;
-    cursor: pointer;
-}
-
-/* --- BOTÕES --- */
+/* Botão Principal (CTA) */
 .cta-btn {
     width: 100%;
     padding: 16px;
@@ -118,12 +114,13 @@ input:focus, select:focus {
 .cta-btn:active { transform: translateY(0); }
 .cta-btn:disabled { background: #555; cursor: wait; filter: none; box-shadow: none; }
 
-/* --- MENSAGENS --- */
-#message, #loginMsg { margin-top: 20px; text-align: center; font-size: 0.95rem; min-height: 20px; font-weight: 500;}
+/* Mensagens */
+#message { margin-top: 20px; text-align: center; font-size: 0.95rem; min-height: 20px; font-weight: 500;}
 .error { color: var(--error); }
 .success { color: var(--success); }
 
-/* --- GRADE DE HORÁRIOS (CLIENTE) --- */
+/* --- COMPONENTES DE AGENDAMENTO (SLOTS) --- */
+
 .slots-container {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -141,7 +138,6 @@ input:focus, select:focus {
     transition: all 0.3s;
     font-size: 0.9rem;
     font-family: 'Lato', sans-serif;
-    text-align: center;
 }
 
 .slot-btn:hover:not(:disabled) { 
@@ -160,78 +156,135 @@ input:focus, select:focus {
 
 .slot-btn:disabled { opacity: 0.2; cursor: not-allowed; background: #1a1a1a; text-decoration: line-through; }
 
-/* --- ESTILOS DO PAINEL ADMIN --- */
 
-/* Overlay de Login */
-#login-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: var(--bg-dark); z-index: 2000;
-    display: flex; justify-content: center; align-items: center; flex-direction: column;
-}
+/* --- NOVOS ESTILOS (LAYOUT TIPO SALONSOFT) --- */
 
-/* Navegação por Abas */
-.tab-nav {
-    display: flex;
-    justify-content: center;
-    gap: 15px;
-    margin-bottom: 30px;
-    border-bottom: 1px solid rgba(183, 110, 121, 0.2);
-    padding-bottom: 15px;
-}
+/* Controle de Telas (Views) */
+.view-section { display: none; animation: fadeIn 0.5s; width: 100%; }
+.view-section.active { display: block; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 
-.tab-btn {
-    background: transparent;
-    border: none;
-    color: var(--text-muted);
-    font-size: 1.1rem;
-    cursor: pointer;
-    padding: 10px 20px;
-    transition: all 0.3s;
-    font-family: 'Playfair Display', serif;
-}
+/* Header de Navegação (Seta Voltar) */
+.nav-header { display: flex; align-items: center; margin-bottom: 20px; }
+.back-btn { background: none; border: none; color: var(--gold-primary); font-size: 1.2rem; cursor: pointer; margin-right: 15px; }
 
-.tab-btn:hover { color: var(--gold-primary); }
-.tab-btn.active { color: var(--gold-primary); border-bottom: 2px solid var(--gold-primary); }
-
-/* Conteúdo das Abas */
-.tab-content { display: none; animation: fadeIn 0.5s; }
-.tab-content.active { display: block; }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-/* Controles do Admin */
-.admin-controls { display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; }
-.admin-controls input { flex: 1; min-width: 200px; }
-.admin-controls button { flex: 1; background: #333; color: white; border: 1px solid #444; }
-.admin-controls button:hover { background: var(--gold-primary); color: #121212; }
-
-/* Lista de Cards (Admin) */
-.list-container { display: flex; flex-direction: column; gap: 15px; }
-
-.admin-card {
+/* Lista de Serviços (Cards) */
+.service-card {
     background: #252525;
-    padding: 20px;
-    border-radius: 12px;
-    border-left: 4px solid var(--gold-primary);
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 15px;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-    transition: transform 0.2s;
+    border: 1px solid #333;
+    transition: transform 0.2s ease;
+}
+.service-card:hover { border-color: var(--gold-primary); transform: translateX(2px); }
+
+.service-info h4 { color: var(--gold-primary); margin-bottom: 5px; font-size: 1rem; }
+.service-info p { color: #aaa; font-size: 0.85rem; margin-bottom: 2px;}
+.service-price { color: #fff; font-weight: bold; margin-top: 5px; }
+
+/* Calendário Horizontal */
+.calendar-strip {
+    display: flex;
+    overflow-x: auto;
+    gap: 10px;
+    padding-bottom: 10px;
+    margin-bottom: 20px;
+    /* Estilização da barra de rolagem */
+    scrollbar-width: thin; /* Firefox */
+    scrollbar-color: var(--gold-primary) #222;
+}
+
+.calendar-strip::-webkit-scrollbar { height: 6px; }
+.calendar-strip::-webkit-scrollbar-track { background: #222; border-radius: 10px; }
+.calendar-strip::-webkit-scrollbar-thumb { background-color: var(--gold-primary); border-radius: 10px; }
+
+.date-card {
+    min-width: 70px;
+    background: #252525;
+    border: 1px solid #333;
+    border-radius: 8px;
+    padding: 10px 5px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex-shrink: 0; /* Impede que os cards encolham */
+}
+
+.date-card span.day { font-size: 0.8rem; color: #aaa; text-transform: uppercase; margin-bottom: 5px; display: block; }
+.date-card span.date { font-size: 1.2rem; font-weight: bold; color: #fff; }
+
+.date-card:hover { border-color: var(--gold-primary); background: rgba(183, 110, 121, 0.1); }
+.date-card.selected { background: var(--gold-gradient); border-color: transparent; }
+.date-card.selected span.day, .date-card.selected span.date { color: #121212; font-weight: bold; }
+
+
+/* --- ESTILOS DO ADMIN (Mantidos para compatibilidade) --- */
+#login-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: var(--bg-dark); z-index: 1000;
+    display: flex; justify-content: center; align-items: center; flex-direction: column;
+}
+
+.tab-nav {
+    display: flex; justify-content: center; gap: 15px; margin-bottom: 30px;
+    border-bottom: 1px solid rgba(183, 110, 121, 0.2); padding-bottom: 15px;
+}
+.tab-btn {
+    background: transparent; border: none; color: var(--text-muted); font-size: 1.1rem;
+    cursor: pointer; padding: 10px 20px; transition: all 0.3s; font-family: 'Playfair Display', serif;
+}
+.tab-btn:hover { color: var(--gold-primary); }
+.tab-btn.active { color: var(--gold-primary); border-bottom: 2px solid var(--gold-primary); }
+
+.tab-content { display: none; animation: fadeIn 0.5s; }
+.tab-content.active { display: block; }
+
+.dashboard-controls { display: flex; gap: 15px; margin-bottom: 30px; flex-wrap: wrap; }
+.dashboard-controls input { flex: 1; min-width: 200px; }
+.dashboard-controls button { flex: 1; background: #333; color: white; border: 1px solid #444; }
+.dashboard-controls button:hover { background: var(--gold-primary); color: #121212; }
+
+.list-container { display: flex; flex-direction: column; gap: 15px; }
+
+.admin-card {
+    background: #252525; padding: 20px; border-radius: 12px;
+    border-left: 4px solid var(--gold-primary);
+    display: flex; justify-content: space-between; align-items: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.3); transition: transform 0.2s;
 }
 .admin-card:hover { transform: translateX(5px); background: #2a2a2a; }
 
+.card-info h3 { color: var(--text-main); font-size: 1.1rem; margin-bottom: 5px; }
+.card-info p { color: var(--text-muted); font-size: 0.9rem; }
+.card-info .highlight { color: var(--gold-primary); font-weight: bold; }
+
 .btn-delete {
     background: transparent; border: 1px solid var(--error); color: var(--error);
-    width: 35px; height: 35px; border-radius: 5px;
+    width: 40px; height: 40px; border-radius: 50%;
     cursor: pointer; display: flex; align-items: center; justify-content: center;
     transition: all 0.3s;
 }
 .btn-delete:hover { background: var(--error); color: white; }
 
-/* Responsividade */
+.add-service-box {
+    background: rgba(255, 255, 255, 0.05); padding: 20px; border-radius: 10px;
+    margin-bottom: 25px; border: 1px dashed var(--gold-primary);
+}
+.add-row { display: flex; gap: 10px; align-items: flex-end; }
+.add-row .form-group { margin-bottom: 0; flex: 1; }
+.add-row button { margin-top: 0; }
+
 @media (max-width: 600px) {
     .container { padding: 30px 20px; }
+    .add-row { flex-direction: column; }
+    .add-row button { width: 100%; margin-top: 10px; }
+    .admin-card { flex-direction: column; text-align: center; gap: 15px; }
     .slots-container { grid-template-columns: repeat(3, 1fr); }
-    .admin-controls { flex-direction: column; }
-    .admin-card { flex-direction: column; text-align: center; gap: 10px; }
 }
